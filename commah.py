@@ -8,6 +8,7 @@ __email__ = 'mail@alanrduffy.com'
 __version__ = '0.1.0'
 
 from scipy.integrate import ode, quad
+from scipy.optimize import minimize_scalar, fsolve, brent
 
 import numpy as np
 import cosmolopy as cp
@@ -72,9 +73,10 @@ def cduffy(z0, M0, vir='200crit', relaxed=True):
 
   return params[0] * ((M0/(2e12/0.72))**params[1]) * ((1.+z0)**params[2])
 
-def which_c(M0, z0, a_tilde, b_tilde, c):
+def minimize_c(c, z0=0., M0=1e10, a_tilde=1., b_tilde=-1., bestfit_param = 900., omega_M_0=0.25, omega_lambda_0=0.75):
   """ Trial function to solve 2 equations 17 and 18 from Correa et al 2014b for 1 unknown, the concentration """
   
+  #c = cin[0]
   ## Fn 1:
   Y1 = np.log(2.) - 0.5
   Yc = np.log(1.+c) - c/(1.+c)
@@ -82,15 +84,36 @@ def which_c(M0, z0, a_tilde, b_tilde, c):
 
   ## Fn 2:
   rho_2 = 200.*(c**3.)*Y1/Yc
-
-  ## Use detal to convert best fit constant of proportionality of rho_crit - rho_2 from Correa et al 2014a to this cosmology
-  bestfit_param = 900. * delta_sigma(M0) / (cosmo['omega_M_0']*(1.+z0)**3. + cosmo['omega_lambda_0'])
-  zf = ((rho_2/bestfit_param)/cosmo['omega_M_0'] - cosmo['omega_lambda_0']/cosmo['omega_M_0'])**(1./3.)-1.
+#    bestfit_param = 900. * delta_sigma(M0) / (cosmo['omega_M_0']*(1.+z0)**3. + cosmo['omega_lambda_0'])
+  zf = ( (rho_2/bestfit_param)/omega_M_0 - omega_lambda_0/omega_M_0 )**(1./3.) - 1.
+#    zf = ((rho_2/bestfit_param)/cosmo['omega_M_0'] - cosmo['omega_lambda_0']/cosmo['omega_M_0'])**(1./3.)-1.
   f2 = a_tilde * np.log(1.+zf-z0) + b_tilde*(zf-z0)
+ # print c, f1, f2, np.abs(f1-f2), rho_2, zf, z0, M0, a_tilde, b_tilde, bestfit_param, omega_M_0, omega_lambda_0
+
+  return np.abs(f1-f2)
+
+def fsolve_c(cin, z0=0., M0=1e10, a_tilde=1., b_tilde=-1., bestfit_param = 900., omega_M_0=0.25, omega_lambda_0=0.75):
+  """ Trial function to solve 2 equations 17 and 18 from Correa et al 2014b for 1 unknown, the concentration """
+  
+  c = cin[0]
+  ## Fn 1:
+  Y1 = np.log(2.) - 0.5
+  Yc = np.log(1.+c) - c/(1.+c)
+  f1 = np.log(Y1/Yc)
+
+  ## Fn 2:
+  rho_2 = 200.*(c**3.)*Y1/Yc
+#    bestfit_param = 900. * delta_sigma(M0) / (cosmo['omega_M_0']*(1.+z0)**3. + cosmo['omega_lambda_0'])
+  zf = ( (rho_2/bestfit_param)/omega_M_0 - omega_lambda_0/omega_M_0)**(1/3)-1.
+#    zf = ((rho_2/bestfit_param)/cosmo['omega_M_0'] - cosmo['omega_lambda_0']/cosmo['omega_M_0'])**(1./3.)-1.
+  f2 = a_tilde * np.log(1.+zf-z0) + b_tilde*(zf-z0)
+
   return f1-f2
 
-def calc_ab(z0,M0, **cosmo):
-  """ Calculate parameters alpha and beta from Eqns 9 and 10 of Correa et al 2014b """
+def calc_ab(z0, M0, **cosmo):
+  """ Calculate parameters a_tilde and b_tilde from Eqns 9 and 10 of Correa et al 2014b """
+
+  # When z0 = 0, the a_tilde becomes alpha and b_tilde becomes beta
 
   zf = -0.0064*(np.log10(M0))**2. + 0.02373*(np.log10(M0)) + 1.8837
 
@@ -103,46 +126,54 @@ def calc_ab(z0,M0, **cosmo):
 
   f = (sigq**2. - sig0**2.)**(-0.5)  
 
-  ## I have no idea why this is 10, I think it's meant to be a higher redshift?
-  cte = deriv_growth(10., **cosmo) / growthfactor(10., norm=True, **cosmo)**2.
+  ## Eqn 9 a_tilde is power law growth rate from Correa et al 2014b
+  a_tilde = (np.sqrt(2./np.pi)*1.686*deriv_growth(z0, **cosmo)/ growthfactor(z0, norm=True, **cosmo)**2. + 1.)*f
+  ## Eqn 10 b_tilde is exponential growth rate from Correa et al 2014b
+  b_tilde = -f
 
-  ## Eqn 9 alpha is power law growth rate from Correa et al 2014b
-  alpha = np.sqrt(2./np.pi)*1.686*(deriv_growth(z0, **cosmo)/ growthfactor(z0, norm=True, **cosmo)**2. - cte)*f
-  ## Eqn 10 beta is exponential growth rate from Correa et al 2014b
-  beta = np.sqrt(2./np.pi)*1.686*cte*f
+  return a_tilde, b_tilde
 
-  return alpha, beta
-
-def acc_rate(z, z0, M0, alpha=None, beta=None, **cosmo):
+def acc_rate(z, z0, M0, a_tilde=None, b_tilde=None, **cosmo):
   """ Compute Mass Accretion Rate at redshift 'z' given halo of mass M0 at redshift z0, with z0<z always """
-  ## Uses parameters alpha and beta following eqns 9 and 10 from Correa et al 2014b 
+  ## Uses parameters a_tilde and b_tilde following eqns 9 and 10 from Correa et al 2014b 
   assert(z0 < z);
 
-  if alpha == None or beta == None:
-    alpha, beta = calc_ab(z0, M0, **cosmo)
+  if a_tilde == None or b_tilde == None:
+    a_tilde, b_tilde = calc_ab(z0, M0, **cosmo)
 
   ## Accretion rate at z
-  Mz = np.log10(M0) + np.log10( (1.+z-z0)**alpha * np.exp(beta *(z-z0)) )
-  dMdt = np.log10(71.59*(cosmo['h']/0.7)*(-1. * alpha - beta*(1.+z-z0))*(10.**(Mz-12.))*np.sqrt(cosmo['omega_M_0']*(1.+z-z0)**3.+cosmo['omega_lambda_0']))
+  Mz = np.log10(M0) + np.log10( (1.+z-z0)**a_tilde * np.exp(b_tilde *(z-z0)) )
+  dMdt = np.log10(71.59*(cosmo['h']/0.7)*(-a_tilde - b_tilde*(1.+z-z0))*(10.**(Mz-12.))*np.sqrt(cosmo['omega_M_0']*(1.+z-z0)**3.+cosmo['omega_lambda_0']))
 
-  return dMdt, Mz, alpha, beta
+  return 10.**dMdt, 10.**Mz, a_tilde, b_tilde
 
 def MAH(z, z0, M0, **cosmo):
   """ Compute Mass Accretion History at redshift 'z' given halo of mass M0 at redshift z0, with z0<z always """
-  ## Uses parameters alpha and beta following eqns 9 and 10 from Correa et al 2014b 
+  ## Uses parameters a_tilde and b_tilde following eqns 9 and 10 from Correa et al 2014b 
   dMdt, Mz = acc_rate(z, z0, M0, **cosmo)
 
   return Mz
 
-def COM(z0, M0, alpha=None, beta=None, **cosmo):
+def COM(z0, M0, a_tilde=None, b_tilde=None, **cosmo):
   """ Give a halo mass and redshift calculate the concentration based on equation 17 and 18 from Correa et al 2014b """
 
-  if alpha == None or beta == None:
-    alpha, beta = calc_ab(z0, M0, **cosmo)
+  if a_tilde == None or b_tilde == None:
+    a_tilde, b_tilde = calc_ab(z0, M0, **cosmo)
 
-  ## Need to find a numpy equivalent of mpfitfun
-#  c = mpfitfun('which_c', [M0,z0,alpha,beta], [0,0],[1],[5.])
-  c = cduffy(z0,M0,vir='200crit',relaxed=True)
+  ## Minimize the scalar
+  c0 = 3.
+
+  ## Use detal to convert best fit constant of proportionality of rho_crit - rho_2 from Correa et al 2014a to this cosmology
+  bestfit_param = 900. * delta_sigma(M0,**cosmo) / (cosmo['omega_M_0']*(1.+z0)**3. + cosmo['omega_lambda_0'])
+#  print "bestfit_param is ",bestfit_param
+
+  c = brent(minimize_c, brack=(0.1,100.), args=(z0,M0,a_tilde,b_tilde,bestfit_param,cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
+#  soln = minimize_c(minimize_c, args=(z0,M0,a_tilde,b_tilde,bestfit_param,cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
+#  c = soln['x']
+
+#  c = fsolve(fsolve_c, c0, args=(z0,M0,a_tilde,b_tilde,bestfit_param,cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
+
+  #c = cduffy(z0,M0,vir='200crit',relaxed=True)
 
   R0_Mass = cp.perturbation.mass_to_radius(M0, **cosmo) 
   sig0, err_sig0 = cp.perturbation.sigma_r(R0_Mass, 0., **cosmo) ## evalulate at z=0 to a good approximation
@@ -228,6 +259,7 @@ def run(cosmology, com=True, mah=True):
   ## Use the cosmology as **cosmo passed to cosmolopy routines
 
   z0 = 0. ## doesn't matter
+  print "z0, log10(M0), z, log10(Mz), log10(dMdt), c"
 
   ## Scan for Mvir(z=0) = 1e10, 1e11, 1e12, 1e13, 1e14 their formation history from 0 -> 5
   for M in np.arange(10.,14.,1.):
@@ -245,10 +277,10 @@ def run(cosmology, com=True, mah=True):
     #f = (sigq**2. - sig0**2.)**(-0.5)
 
     for z in np.arange(0.001,5.,1.):
-      dMdt, Mz, alpha, beta = acc_rate(z, z0, M0, **cosmo)
-      c, sig0, nu = COM(z, Mz, alpha=alpha, beta=beta, **cosmo)
+      dMdt, Mz, a_tilde, b_tilde = acc_rate(z, z0, M0, **cosmo)
+      c, sig0, nu = COM(z, Mz, a_tilde=a_tilde, b_tilde=b_tilde, **cosmo)
 
-      print z, Mz, dMdt, c
+      print z0, np.log10(M0), z, np.log10(Mz), np.log10(dMdt), c
 
     #print "M, Mh, zf, sig0**2, f"
     #print M, M0, zf, sig0**2., f
