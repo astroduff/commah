@@ -8,7 +8,7 @@ __email__ = 'mail@alanrduffy.com'
 __version__ = '0.1.0'
 
 from scipy.integrate import ode, quad
-from scipy.optimize import minimize_scalar, fsolve, brent
+from scipy.optimize import brent
 
 import numpy as np
 import cosmolopy as cp
@@ -19,6 +19,109 @@ def cosmotodict(cosmo=None):
 #def inv_h(z, **cosmo):
 #  """ Inverse Hubble factor to be integrated """
 #  return (1.+z)/(cosmo['omega_M_0']*(1.+z)**3.+cosmo['omega_lambda_0'])**(1.5)
+
+def delta_sigma(**cosmo):
+  """ Calculate delta_sigma (propto formation time) to convert best-fit parameter of rho_crit - rho_2 relation between cosmologies, WMAP5 standard (Correa et al 2014a) """
+
+  """
+  +
+   NAME:
+         delta_sigma
+  
+   PURPOSE:
+         Perturb the rho_crit - rho_2 getAscaling result from the WMAP5 default to the user supplied cosmology
+
+   CATEGORY:
+         Function
+  
+   REQUIREMENTS:
+          import numpy
+          import cosmolopy
+
+   CALLING SEQUENCE:
+      from comma import *
+      Result = comma.delta_sigma(**cosmo)
+  
+   INPUTS:
+         cosmo: dictionary of cosmology
+                {'N_nu': 0,'Y_He': 0.24, 'h': 0.702, 'n': 0.963,'omega_M_0': 0.275,'omega_b_0': 0.0458,'omega_lambda_0': 0.725,
+                'omega_n_0': 0.0, 'sigma_8': 0.816, 't_0': 13.76, 'tau': 0.088,'z_reion': 10.6}
+
+   OPTIONAL INPUTS:
+  
+   KEYWORD PARAMETERS:
+
+   OUTPUTS:
+          A float 
+
+   MODIFICATION HISTORY (by Alan Duffy):
+          
+          1/12/14 IDL version by Camila Correa translated to Python by Alan Duffy
+          Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
+  """
+
+
+  M8_cosmo = cp.perturbation.radius_to_mass(8.,**cosmo)
+  return (0.796/cosmo['sigma_8'])*(M8_cosmo/2.5e14)**( (cosmo['n']-0.963)/6. )
+
+def getAscaling(cosmology, newcosmo=False):
+  """ Returns the normalisation constant between Rho_-2 and Rho_mean(z_formation) for a given cosmology """
+
+  """
+  +
+   NAME:
+         getAscaling
+  
+   PURPOSE:
+         This function takes in a recognised string cosmology (such as WMAP1, WMAP3, WMAP5, WMAP7, WMAP9, Planck) 
+         or a cosmo dict that requires the sigma_8, n_s 
+   CATEGORY:
+         Function
+  
+   REQUIREMENTS:
+          import numpy
+          import cosmolopy
+
+   CALLING SEQUENCE:
+      from comma import *
+      Result = comma.getAscaling(cosmology, [newcosmo=False] )
+  
+   INPUTS:
+         cosmology: Either a name for a cosmology, default WMAP7, such as WMAP1, WMAP3, WMAP5, WMAP7, WMAP9, Planck
+                or a dictionary like: 
+                {'N_nu': 0,'Y_He': 0.24, 'h': 0.702, 'n': 0.963,'omega_M_0': 0.275,'omega_b_0': 0.0458,'omega_lambda_0': 0.725,
+                'omega_n_0': 0.0, 'sigma_8': 0.816, 't_0': 13.76, 'tau': 0.088,'z_reion': 10.6}
+
+   OPTIONAL INPUTS:
+  
+   KEYWORD PARAMETERS (set to False):
+         newcosmo: If false then cosmology is a string for a default cosmology & use Correa14b estimate, if true then recalculate
+
+   OUTPUTS:
+          A float that can scale between rho_mean at the formation redshift to rho_2 for NFW halo
+
+   MODIFICATION HISTORY (by Alan Duffy):
+          
+          1/12/14 IDL version by Camila Correa translated to Python by Alan Duffy
+          Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
+  """
+
+
+
+  if newcosmo == False:
+    defaultcosmologies = {'wmap1' : 787.01, 'wmap3' : 850.37, 'wmap5' : 903.75, 'wmap9' : 820.37, 'planck' : 798.82} # Values from Correa 14a
+
+    if cosmology.lower() in defaultcosmologies.keys():
+      A_scaling = defaultcosmologies[cosmology.lower()]    
+    else:
+      print "Error, don't recognise your cosmology for A_scaling ", cosmology
+
+  else:
+    # Scale from default WMAP5 cosmology using Correa et al 14b eqn C1 
+    Mpivot = 1e12
+    A_scaling = defaultcosmologies['wmap5'] * delta_sigma(Mpivot, **cosmology)
+
+  return A_scaling
 
 def int_growth(z, **cosmo):
   """ Returns the integral of the linear growth factor from z=200 to z=z """
@@ -32,6 +135,43 @@ def int_growth(z, **cosmo):
 def deriv_growth(z, **cosmo):
   """ Returns the derivative of the linear growth factor for redshift and cosmo (0m, 0l) """
 
+  """
+  +
+   NAME:
+         deriv_growth
+  
+   PURPOSE:
+         For a given redshift (and cosmology passed as kwargs) return the derivative of the linear growth factor
+   CATEGORY:
+         Function
+  
+   REQUIREMENTS:
+          import numpy
+          import cosmolopy
+
+   CALLING SEQUENCE:
+      from comma import *
+      Result = comma.deriv_growth(z, **cosmo)
+  
+   INPUTS:
+         z: Redshift  
+         cosmo: dictionary of cosmology
+                {'N_nu': 0,'Y_He': 0.24, 'h': 0.702, 'n': 0.963,'omega_M_0': 0.275,'omega_b_0': 0.0458,'omega_lambda_0': 0.725,
+                'omega_n_0': 0.0, 'sigma_8': 0.816, 't_0': 13.76, 'tau': 0.088,'z_reion': 10.6}
+
+   OPTIONAL INPUTS:
+  
+   KEYWORD PARAMETERS: 
+
+   OUTPUTS:
+          A float 
+
+   MODIFICATION HISTORY (by Alan Duffy):
+          
+          1/12/14 IDL version by Camila Correa translated to Python by Alan Duffy
+          Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
+  """
+
   inv_h = (cosmo['omega_M_0']*(1.+z)**3.+cosmo['omega_lambda_0'])**(-0.5)
   fz = (1.+z) * inv_h**3.
 
@@ -40,16 +180,51 @@ def deriv_growth(z, **cosmo):
 def growthfactor(z, norm=True, **cosmo):
   """ Returns the linear growth factor at z=z, normalised to z=0 """
 
+  """
+  +
+   NAME:
+         growthfactor
+  
+   PURPOSE:
+         For a given redshift (and cosmology passed as kwargs) return the linear growth factor
+
+   CATEGORY:
+         Function
+  
+   REQUIREMENTS:
+          import numpy
+          import cosmolopy
+
+   CALLING SEQUENCE:
+      from comma import *
+      Result = comma.growthfactor(z, norm=True, **cosmo)
+  
+   INPUTS:
+         z: Redshift  
+         cosmo: dictionary of cosmology
+                {'N_nu': 0,'Y_He': 0.24, 'h': 0.702, 'n': 0.963,'omega_M_0': 0.275,'omega_b_0': 0.0458,'omega_lambda_0': 0.725,
+                'omega_n_0': 0.0, 'sigma_8': 0.816, 't_0': 13.76, 'tau': 0.088,'z_reion': 10.6}
+
+   OPTIONAL INPUTS:
+  
+   KEYWORD PARAMETERS (set to True)
+         norm: Normalise growth factor at redshift 'z' by the growth factor at z=0
+
+   OUTPUTS:
+          A float 
+
+   MODIFICATION HISTORY (by Alan Duffy):
+          
+          1/12/14 IDL version by Camila Correa translated to Python by Alan Duffy
+          Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
+  """
+
+
   H = np.sqrt(cosmo['omega_M_0']*(1.+z)**3.+cosmo['omega_lambda_0'])
   growthval = H * int_growth(z, **cosmo) 
   if norm == True:
     growthval /= int_growth(0., **cosmo) 
   return growthval
-
-def delta_sigma(M0, **cosmo):
-  """ Calculate delta_sigma (propto formation time) to convert best-fit parameter of rho_crit - rho_2 relation between cosmologies (Correa et al 2014a) """
-  k = (M0 / cp.perturbation.radius_to_mass(8.,**cosmo))**(1./3.)
-  return (0.796/cosmo['sigma_8'])*k**( (0.963-cosmo['n'])/2. )
 
 def cduffy(z0, M0, vir='200crit', relaxed=True):
   """ Give a halo mass and redshift calculate the NFW concentration based on Duffy 08 Table 1 for relaxed / vir def """
@@ -75,8 +250,50 @@ def cduffy(z0, M0, vir='200crit', relaxed=True):
 
 def minimize_c(c, z0=0., M0=1e10, a_tilde=1., b_tilde=-1., bestfit_param = 900., omega_M_0=0.25, omega_lambda_0=0.75):
   """ Trial function to solve 2 equations 17 and 18 from Correa et al 2014b for 1 unknown, the concentration """
+
+  """
+  +
+   NAME:
+         minimize_c
   
-  #c = cin[0]
+   PURPOSE:
+         Function to minimize to solution for the concentration of a halo mass M0 at z0, solving when f1 = f2 in Correa et al 2014b (eqns 17 & 18)
+
+   CATEGORY:
+         Function
+  
+   REQUIREMENTS:
+          import numpy
+          import cosmolopy
+          import scipy
+
+   CALLING SEQUENCE:
+      from comma import *
+
+      Result = scipy.optimize.brent(minimize_c, brack=(0.1,100.), args=(z0,M0,a_tilde,b_tilde,bestfit_param,cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
+  
+   INPUTS:
+         z0: Redshift of original halo
+         M0: Mass of original halo at redshift z0
+         bestfit_param: A scaling between cosmologies, use getAscaling function
+         a_tilde: power law growth rate factor
+         b_tilde: exponential growth rate factor
+         cosmo: dictionary of cosmology, in particular two properties only Total Matter density as cosmo['omega_M_0'] and DE density as cosmo['omega_lambda_0']
+
+   OPTIONAL INPUTS:
+  
+   KEYWORD PARAMETERS (set to True)
+         norm: Normalise growth factor at redshift 'z' by the growth factor at z=0
+
+   OUTPUTS:
+          A float 
+
+   MODIFICATION HISTORY (by Alan Duffy):
+          
+          1/12/14 IDL version by Camila Correa translated to Python by Alan Duffy
+          Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
+  """
+  
   ## Fn 1:
   Y1 = np.log(2.) - 0.5
   Yc = np.log(1.+c) - c/(1.+c)
@@ -84,35 +301,57 @@ def minimize_c(c, z0=0., M0=1e10, a_tilde=1., b_tilde=-1., bestfit_param = 900.,
 
   ## Fn 2:
   rho_2 = 200.*(c**3.)*Y1/Yc
-#    bestfit_param = 900. * delta_sigma(M0) / (cosmo['omega_M_0']*(1.+z0)**3. + cosmo['omega_lambda_0'])
   zf = ( (rho_2/bestfit_param)/omega_M_0 - omega_lambda_0/omega_M_0 )**(1./3.) - 1.
-#    zf = ((rho_2/bestfit_param)/cosmo['omega_M_0'] - cosmo['omega_lambda_0']/cosmo['omega_M_0'])**(1./3.)-1.
   f2 = a_tilde * np.log(1.+zf-z0) + b_tilde*(zf-z0)
- # print c, f1, f2, np.abs(f1-f2), rho_2, zf, z0, M0, a_tilde, b_tilde, bestfit_param, omega_M_0, omega_lambda_0
 
   return np.abs(f1-f2)
-
-def fsolve_c(cin, z0=0., M0=1e10, a_tilde=1., b_tilde=-1., bestfit_param = 900., omega_M_0=0.25, omega_lambda_0=0.75):
-  """ Trial function to solve 2 equations 17 and 18 from Correa et al 2014b for 1 unknown, the concentration """
-  
-  c = cin[0]
-  ## Fn 1:
-  Y1 = np.log(2.) - 0.5
-  Yc = np.log(1.+c) - c/(1.+c)
-  f1 = np.log(Y1/Yc)
-
-  ## Fn 2:
-  rho_2 = 200.*(c**3.)*Y1/Yc
-#    bestfit_param = 900. * delta_sigma(M0) / (cosmo['omega_M_0']*(1.+z0)**3. + cosmo['omega_lambda_0'])
-  zf = ( (rho_2/bestfit_param)/omega_M_0 - omega_lambda_0/omega_M_0)**(1/3)-1.
-#    zf = ((rho_2/bestfit_param)/cosmo['omega_M_0'] - cosmo['omega_lambda_0']/cosmo['omega_M_0'])**(1./3.)-1.
-  f2 = a_tilde * np.log(1.+zf-z0) + b_tilde*(zf-z0)
-
-  return f1-f2
 
 def calc_ab(z0, M0, **cosmo):
   """ Calculate parameters a_tilde and b_tilde from Eqns 9 and 10 of Correa et al 2014b """
 
+  """
+  +
+   NAME:
+         minimize_c
+  
+   PURPOSE:
+         Function to minimize to solution for the concentration of a halo mass M0 at z0, solving when f1 = f2 in Correa et al 2014b (eqns 17 & 18)
+
+   CATEGORY:
+         Function
+  
+   REQUIREMENTS:
+          import numpy
+          import cosmolopy
+          import scipy
+
+   CALLING SEQUENCE:
+      from comma import *
+
+      Result = scipy.optimize.brent(minimize_c, brack=(0.1,100.), args=(z0,M0,a_tilde,b_tilde,bestfit_param,cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
+  
+   INPUTS:
+         z0: Redshift of original halo
+         M0: Mass of original halo at redshift z0
+         bestfit_param: A scaling between cosmologies, use getAscaling function
+         a_tilde: power law growth rate factor
+         b_tilde: exponential growth rate factor
+         cosmo: dictionary of cosmology, in particular two properties only Total Matter density as cosmo['omega_M_0'] and DE density as cosmo['omega_lambda_0']
+
+   OPTIONAL INPUTS:
+  
+   KEYWORD PARAMETERS (set to True)
+         norm: Normalise growth factor at redshift 'z' by the growth factor at z=0
+
+   OUTPUTS:
+          A float 
+
+   MODIFICATION HISTORY (by Alan Duffy):
+          
+          1/12/14 IDL version by Camila Correa translated to Python by Alan Duffy
+          Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
+  """
+  
   # When z0 = 0, the a_tilde becomes alpha and b_tilde becomes beta
 
   zf = -0.0064*(np.log10(M0))**2. + 0.02373*(np.log10(M0)) + 1.8837
@@ -168,12 +407,6 @@ def COM(z0, M0, a_tilde=None, b_tilde=None, **cosmo):
 #  print "bestfit_param is ",bestfit_param
 
   c = brent(minimize_c, brack=(0.1,100.), args=(z0,M0,a_tilde,b_tilde,bestfit_param,cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
-#  soln = minimize_c(minimize_c, args=(z0,M0,a_tilde,b_tilde,bestfit_param,cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
-#  c = soln['x']
-
-#  c = fsolve(fsolve_c, c0, args=(z0,M0,a_tilde,b_tilde,bestfit_param,cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
-
-  #c = cduffy(z0,M0,vir='200crit',relaxed=True)
 
   R0_Mass = cp.perturbation.mass_to_radius(M0, **cosmo) 
   sig0, err_sig0 = cp.perturbation.sigma_r(R0_Mass, 0., **cosmo) ## evalulate at z=0 to a good approximation
@@ -246,16 +479,21 @@ def run(cosmology, com=True, mah=True):
   if com == False:
     if mah == False:
       print "User has to choose com=True and / or mah=True "
-  
+
+
   defaultcosmologies = {'wmap1' : cp.cparam.DRAGONS(), 'wmap5' : cp.cparam.WMAP5_ML()}#, WMAP5, WMAP7, WMAP9, Planck}
   if cosmology.lower() in defaultcosmologies.keys():
     cosmo = defaultcosmologies[cosmology.lower()]
+    A_scaling = getAscaling(cosmology.lower())
+    cosmo.update({'A_scaling':A_scaling})
   elif isinstance(cosmology,dict):
     cosmo = cosmology
+    if ('a_scaling').lower() not in cosmology.keys():
+      ## Just assume WMAP5
+      A_scaling = getAscaling(cosmology, newcosmo=True)
   else:
     print "You haven't passed a dict of cosmological parameters OR a recognised cosmology, you gave ",cosmology
   cosmo = cp.distance.set_omega_k_0(cosmo) ## No idea why this has to be done by hand but should be O_k = 0
-
   ## Use the cosmology as **cosmo passed to cosmolopy routines
 
   z0 = 0. ## doesn't matter
