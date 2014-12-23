@@ -13,6 +13,7 @@ from scipy.optimize import brent
 import numpy as np
 import cosmolopy as cp
 import cosmology_list as cg
+import itertools
 
 def cosmotodict(cosmo=None):
   """ Convert astropy cosmology to cosmolopy cosmology dict, still to do! Currently directly using cosmology.py list """
@@ -110,7 +111,8 @@ def getAscaling(cosmology, newcosmo=False):
 
 
   if newcosmo == False:
-    defaultcosmologies = {'dragons' : 850., 'wmap1' : 787.01, 'wmap3' : 850.37, 'wmap5' : 903.75, 'wmap9' : 820.37, 'planck' : 798.82} # Values from Correa 14a
+    defaultcosmologies = {'dragons' : 850., 'wmap1' : 787.01, 'wmap3' : 850.37, 
+    'wmap5' : 903.75, 'wmap9' : 820.37, 'planck' : 798.82} # Values from Correa 14a
 
     if cosmology.lower() in defaultcosmologies.keys():
       A_scaling = defaultcosmologies[cosmology.lower()]    
@@ -126,7 +128,12 @@ def getAscaling(cosmology, newcosmo=False):
 def int_growth(z, **cosmo):
   """ Returns the integral of the linear growth factor from z=200 to z=z """
   zmax = 200.
-  assert(z < zmax);
+
+  if hasattr(z, "__len__"):
+    for ival, zval in enumerate(z):
+      assert(zval < zmax);
+  else:
+    assert(z < zmax);
 
   inv_h3 = lambda z: (1.+z)/(cosmo['omega_M_0']*(1.+z)**3.+cosmo['omega_lambda_0'])**(1.5)
   y, yerr = quad(inv_h3, z, zmax)  
@@ -422,7 +429,12 @@ def acc_rate(z, z0, M0, a_tilde=None, b_tilde=None, **cosmo):
           Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
   """
   ## Uses parameters a_tilde and b_tilde following eqns 9 and 10 from Correa et al 2014b 
-  assert(z0 < z);
+
+  if hasattr(z, "__len__"):
+    for ival, zval in enumerate(z):
+      assert(z0 < zval);
+  else:
+    assert(z0 < z);
 
   if a_tilde == None or b_tilde == None:
     a_tilde, b_tilde = calc_ab(z0, M0, **cosmo)
@@ -433,7 +445,7 @@ def acc_rate(z, z0, M0, a_tilde=None, b_tilde=None, **cosmo):
 
   return 10.**dMdt, 10.**Mz, a_tilde, b_tilde
 
-def MAH(z, z0, M0, deltaz=1e-4, **cosmo):
+def MAH(z, z0, M0, deltaz=1e-3, **cosmo):
   """ Compute Mass Accretion History at redshift 'z' given halo of mass M0 at redshift z0, with z0<z always """
 
   """
@@ -455,7 +467,7 @@ def MAH(z, z0, M0, deltaz=1e-4, **cosmo):
    CALLING SEQUENCE:
       from comma import *
 
-      z_array, dMdt_array, Mz_array = mah(z, z0, M0, [deltaz=1e-4,] **cosmo)
+      z_array, dMdt_array, Mz_array = mah(z, z0, M0, [deltaz=1e-3,] **cosmo)
   
    INPUTS:
          z: Redshift of halo at which acc_rate and mass is desired
@@ -479,18 +491,38 @@ def MAH(z, z0, M0, deltaz=1e-4, **cosmo):
           Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
   """
 
+  ## Create a full array
   z_array = np.arange(z0, z, deltaz)
+  dMdt_array = np.empty(np.size(z_array))
+  Mz_array = np.empty(np.size(z_array))
 
-  ## Uses parameters a_tilde and b_tilde following eqns 9 and 10 from Correa et al 2014b 
-  dMdt, Mz, a_tilde, b_tilde = acc_rate(z, z0, M0, **cosmo)
-
-  ## Now create a full array
   for ival, zval in enumerate(z_array):
-    dMdt, Mz, a_tilde, b_tilde = acc_rate(zval, z0, M0, a_tilde=a_tilde, b_tilde=b_tilde, **cosmo)
+    if ival == 0:
+      ## Uses parameters a_tilde and b_tilde following eqns 9 and 10 from Correa et al 2014b 
+      dMdt, Mz, a_tilde, b_tilde = acc_rate(z, z0, M0, **cosmo)
+    else:
+      dMdt, Mz, a_tilde, b_tilde = acc_rate(zval, z0, M0, a_tilde=a_tilde, b_tilde=b_tilde, **cosmo)
+
     dMdt_array[ival] = dMdt
     Mz_array[ival] = Mz
 
   return z_array, dMdt_array, Mz_array
+
+def COMloop(z_array, Mz_array, a_tilde=None, b_tilde=None, **cosmo):
+  """ Can't find integrator to accept arrays, using scipy.quad, so create COMloop to loop COM call """
+
+  c_array = np.empty(np.size(z_array))
+  sig0_array = np.empty(np.size(z_array))
+  nu_array = np.empty(np.size(z_array))
+  ival = 0
+  for zval, mzval in itertools.izip(z_array, Mz_array):
+    c, sig0, nu = COM(zval, mzval, a_tilde=None, b_tilde=None, **cosmo)
+    c_array[ival] = c
+    sig0_array[ival] = sig0
+    nu_array[ival] = nu
+    ival += 1 
+
+  return c_array, sig0_array, nu_array
 
 def COM(z0, M0, a_tilde=None, b_tilde=None, **cosmo):
   """ Give a halo mass and redshift calculate the concentration based on equation 17 and 18 from Correa et al 2014b """
@@ -498,7 +530,7 @@ def COM(z0, M0, a_tilde=None, b_tilde=None, **cosmo):
   if a_tilde == None or b_tilde == None:
     a_tilde, b_tilde = calc_ab(z0, M0, **cosmo)
 
-  ## Use detal to convert best fit constant of proportionality of rho_crit - rho_2 from Correa et al 2014a to this cosmology
+  ## Use delta to convert best fit constant of proportionality of rho_crit - rho_2 from Correa et al 2014a to this cosmology
   c = brent(minimize_c, brack=(0.1,100.), args=(z0,M0,a_tilde,b_tilde,cosmo['A_scaling'],cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
 
   R0_Mass = cp.perturbation.mass_to_radius(M0, **cosmo) 
@@ -507,7 +539,7 @@ def COM(z0, M0, a_tilde=None, b_tilde=None, **cosmo):
 
   return c, sig0, nu
 
-def run(cosmology, filename=filename, z0=0., M0=1e12, deltaz=1e-4, z=10., com=True, mah=True):
+def run(cosmology, filename=False, z0=0., M0=1e12, deltaz=1e-3, z=10., com=True, mah=True):
   """ Determine whether user wants to work out Mass Accretion Histories (MAH) and/or NFW profiles """
 
   """
@@ -541,7 +573,7 @@ def run(cosmology, filename=filename, z0=0., M0=1e12, deltaz=1e-4, z=10., com=Tr
          filename:If passed then output to " filename+'_'+cosmology+'_COM'/'_MAH'+'.npz' "
          M0:     The mass of the halo that the user wants the accretion history for (can be array)
          z0:     The redshift of the halo when it has mass M0 (can be array)
-         deltaz: Redshift interval bins (set to deltaz of 1e-4)
+         deltaz: Redshift interval bins (set to deltaz of 1e-3)
          z:      Output up to redshift 'z'
 
    KEYWORD PARAMETERS (set to True)
@@ -578,7 +610,6 @@ def run(cosmology, filename=filename, z0=0., M0=1e12, deltaz=1e-4, z=10., com=Tr
     if mah == False:
       print "User has to choose com=True and / or mah=True "
 
-
   defaultcosmologies = {'dragons' : cg.DRAGONS(), 'wmap1' : cg.WMAP1_2dF_mean(), 
   'wmap3' : cg.WMAP3_ML(), 'wmap5' : cg.WMAP5_ML(), 'wmap7' : cg.WMAP7_ML(), 
   'wmap9' : cg.WMAP9_ML(), 'planck' : cg.Planck_2013()}
@@ -597,24 +628,29 @@ def run(cosmology, filename=filename, z0=0., M0=1e12, deltaz=1e-4, z=10., com=Tr
   ## Use the cosmology as **cosmo passed to cosmolopy routines
 
   if deltaz == False:
-    deltaz = 1e-4
-
-  print cosmo
-  print z, z0, M0, deltaz
+    deltaz = 1e-3
 
   if mah:
     z_array, dMdt_array, Mz_array = MAH(z, z0, M0, deltaz=deltaz, **cosmo)
     if com:
-      c, sig0, nu = COM(z_array, Mz_array, a_tilde=None, b_tilde=None, **cosmo)
+      c, sig0, nu = COMloop(z_array, Mz_array, a_tilde=None, b_tilde=None, **cosmo)
 
-      if filename:
-        np.savez(filename+'_'+cosmology+'_MAH'+'.npz', z=z_array, dMdt=dMdt_array, Mz=Mz_array, c=c, sig0=sig0, nu=nu)
-      else:
-        return z_array, dMdt_array, Mz_array, c, sig0, nu
-  elif com:
-    z_array, dMdt_array, Mz_array = MAH(z, z0, M0, deltaz=1e-4, **cosmo)
-    c, sig0, nu = COM(z_array, Mz_array, a_tilde=None, b_tilde=None, **cosmo)
     if filename:
-      np.savez(filename+'_'+cosmology+'_COM'+'.npz', c=c, sig0=sig0, nu=nu)
+      output = filename+'_'+cosmology+'_MAH'+'.npz'
+      print "Output to ",output
+      if com:
+        np.savez(output, z=z_array, dMdt=dMdt_array, Mz=Mz_array, c=c, sig0=sig0, nu=nu)
+      else:
+        np.savez(output, z=z_array, dMdt=dMdt_array, Mz=Mz_array)
+    else:
+      return z_array, dMdt_array, Mz_array, c, sig0, nu
+  elif com:
+    z_array, dMdt_array, Mz_array = MAH(z, z0, M0, deltaz=deltaz, **cosmo)
+    c, sig0, nu = COMloop(z_array, Mz_array, a_tilde=None, b_tilde=None, **cosmo)
+
+    if filename:
+      output = filename+'_'+cosmology+'_COM'+'.npz'
+      print "Output to ",output
+      np.savez(output, c=c, sig0=sig0, nu=nu)
     else:    
       return c, sig0, nu
