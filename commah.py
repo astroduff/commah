@@ -571,6 +571,17 @@ def COM(z0, M0, a_tilde=None, b_tilde=None, **cosmo):
 
   return c, sig0, nu
 
+def loopcreategrid():
+  """ Call "creategrid" over range of cosmologies and save to individual pickle files for later interrogation """
+
+  defaultcosmologies = ('DRAGONS', 'WMAP1', 'WMAP3', 'WMAP5', 'WMAP7', 'WMAP9', 'Planck')
+  for cosmology in defaultcosmologies:
+    output = creategrid(cosmology, filename='Full', deltaz=1., deltam=1.)
+    if output != "Done":
+      print "Error with cosmology ",cosmology
+
+  return "Done"
+
 def creategrid(cosmology, filename=None, zgrid = None, zstart=0., zend=100., deltaz=0.1, mgrid = None, mstart=1., mend=16., deltam=0.1, logm = True, com=True, mah=False):
   """ Call "run" over a grid of redshifts and masses and save to a pickle for later interrogation """
 
