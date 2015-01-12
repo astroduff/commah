@@ -404,6 +404,7 @@ def calc_ab(z0, M0, **cosmo):
   sigq, err_sigq = cp.perturbation.sigma_r(Rq_Mass, 0., **cosmo) ## evalulate at z=0 to a good approximation
 
   f = (sigq**2. - sig0**2.)**(-0.5)  
+  
   ## Eqn 9 a_tilde is power law growth rate from Correa et al 2014b
   a_tilde = (np.sqrt(2./np.pi)*1.686*deriv_growth(z0, **cosmo)/ growthfactor(z0, norm=True, **cosmo)**2. + 1.)*f
   ## Eqn 10 b_tilde is exponential growth rate from Correa et al 2014b
@@ -540,7 +541,13 @@ def COMLOOP(z_array, Mz_array, a_tilde=None, b_tilde=None, **cosmo):
   nu_array = np.empty(np.size(z_array))
   ival = 0
   for zval, mzval in itertools.izip(z_array, Mz_array):
-    c, sig0, nu = COM(zval, mzval, a_tilde=None, b_tilde=None, **cosmo)
+    if mzval < 5e-15: #(zval > 45) and (
+      #print "Skip impossibly small objects as they give round off errors, set c, sig0 and nu to -1"
+      c = -1.
+      sig0 = -1.
+      nu = -1.
+    else:
+      c, sig0, nu = COM(zval, mzval, a_tilde=None, b_tilde=None, **cosmo)
     c_array[ival] = c
     sig0_array[ival] = sig0
     nu_array[ival] = nu
@@ -564,7 +571,7 @@ def COM(z0, M0, a_tilde=None, b_tilde=None, **cosmo):
 
   return c, sig0, nu
 
-def creategrid(cosmology, filename=None, zgrid = None, zstart=0., zend=50., deltaz=0.1, mgrid = None, mstart=1., mend=16., deltam=0.1, logm = True, com=True, mah=False):
+def creategrid(cosmology, filename=None, zgrid = None, zstart=0., zend=100., deltaz=0.1, mgrid = None, mstart=1., mend=16., deltam=0.1, logm = True, com=True, mah=False):
   """ Call "run" over a grid of redshifts and masses and save to a pickle for later interrogation """
 
   """
@@ -640,8 +647,8 @@ def creategrid(cosmology, filename=None, zgrid = None, zstart=0., zend=50., delt
   ## Establish mass range
   if mgrid == None:
     mgrid = np.arange(mstart,mend,deltam)
-  if logm:
-    mgrid = 10.**(mgrid)
+    if logm:
+      mgrid = 10.**(mgrid)
 
   if com:
     dataset = np.zeros( (len(mgrid),len(zgrid)), dtype=[('dMdt',float),('c',float),('sig0',float),('nu',float)] )
@@ -754,23 +761,18 @@ def run(cosmology, z0=0., M0=1e12, z=[0.,1.,2.,3.,4.,5.], com=True, mah=False):
   cosmo = getcosmo(cosmology)
 
   if mah:
-    z_array, dMdt, Mz = MAH(z, z0, M0, **cosmo)
-    if np.allclose(z_array,z) != True:
-      print len(z_array), len(z)  
+    z_array, dMdt, Mz = MAH(z, z0, M0, **cosmo) 
     if com:
       ## Loop over the COM routine in redshift (and hence diminishing mass at that z) for the initial mass M0 at z0
       c, sig0, nu = COMLOOP(z_array, Mz, a_tilde=None, b_tilde=None, **cosmo)
-
       return z_array, dMdt, Mz, c, sig0, nu
     else:
       return z_array, dMdt, Mz
   elif com:
-    z_array, dMdt_array, Mz_array = MAH(z, z0, M0, **cosmo)
-    if np.allclose(z_array,z) != True:
-      print len(z_array), len(z)  
-    c, sig0, nu = COMLOOP(z_array, Mz_array, a_tilde=None, b_tilde=None, **cosmo)
+    z_array, dMdt, Mz = MAH(z, z0, M0, **cosmo)  
+    c, sig0, nu = COMLOOP(z_array, Mz, a_tilde=None, b_tilde=None, **cosmo)
   
-    return z_array, dMdt_array, Mz_array, c, sig0, nu
+    return z_array, dMdt, Mz, c, sig0, nu
 
 def loadval(cosmology=None, filename=None, z=0., M=1e12, val='c'):
   """ Shortcut to interrogate commah datasets for user requested masses and redshifts """
