@@ -212,7 +212,7 @@ def WMAP5_ML(flat=False, extras=True):
 
       """
     omega_c_0 = 0.206
-    omega_b_0 = 0.0432
+    omega_b_0 = 0.043
     cosmo = {'omega_b_0' : omega_b_0,
              'omega_M_0' : omega_b_0 + omega_c_0,
              'omega_lambda_0' : 0.751,
@@ -254,7 +254,7 @@ def WMAP5_mean(flat=False, extras=True):
 
     """
     omega_c_0 = 0.214
-    omega_b_0 = 0.0441
+    omega_b_0 = 0.044
     cosmo = {'omega_b_0' : omega_b_0,
              'omega_M_0' : omega_b_0 + omega_c_0,
              'omega_lambda_0' : 0.742,
