@@ -140,7 +140,7 @@ def getAscaling(cosmology, newcosmo=False):
 
   if newcosmo == False:
     defaultcosmologies = {'dragons' : 850., 'wmap1' : 787.01, 'wmap3' : 850.37, 
-    'wmap5' : 903.75, 'wmap9' : 820.37, 'planck' : 798.82} # Values from Correa 14a
+    'wmap5' : 903.75, 'wmap7' : 850., 'wmap9' : 820.37, 'planck' : 798.82} # Values from Correa 14a
 
     if cosmology.lower() in defaultcosmologies.keys():
       A_scaling = defaultcosmologies[cosmology.lower()]    
