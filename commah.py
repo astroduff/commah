@@ -563,7 +563,6 @@ def COMLOOP(z_array, Mz_array, a_tilde=None, b_tilde=None, **cosmo):
     c_array[ival] = c
     sig0_array[ival] = sig0
     nu_array[ival] = nu
-    print zval, mzval, zf, c
     zf_array[ival] = zf
     ival += 1 
 
@@ -1082,7 +1081,7 @@ def plotexamples(filename='Full_WMAP5_COM.pkl', plotout=None):
       ## Plot each line in turn with different colour   
       ax.plot(xarray, yarray, label=linelabel+"{0:.1f}".format( zval ), color=colors[zind],)
 
-    leg = ax.legend(loc=1)
+    leg = ax.legend(loc=2)
     leg.get_frame().set_alpha(0) # this will make the box totally transparent
     leg.get_frame().set_edgecolor('white')
     for label in leg.get_texts():                
@@ -1128,7 +1127,7 @@ def plotexamples(filename='Full_WMAP5_COM.pkl', plotout=None):
   ax.set_xscale('log')
   ax.set_yscale('log')
 
-  leg = ax.legend(loc=1)
+  leg = ax.legend(loc=2)
   leg.get_frame().set_alpha(0) # this will make the box totally transparent
   leg.get_frame().set_edgecolor('white')
   for label in leg.get_texts():                
