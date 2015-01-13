@@ -50,19 +50,16 @@ def runcommand(cosmology='WMAP5'):
 
   return "Done"
 
-def plotcommand(filename='Full_WMAP5_COM.pkl', plotout=None):
+def plotcommand(filename='Full_WMAP5_COM.pkl.bz2', plotout=None):
   """ Example ways to interrogate the dataset and plot the commah output """
+  if plotout:
+    plotname = filename
 
-  ## Check that the file type is indeed a pickle
-  if filename.rfind('.pkl') >= 0:
-    print filename + " is a pickle file"
-    ## Load the file
-
-    with open(filename, 'rb') as fin:
-      data = pkl.load(fin)
-      dataset = data.get("dataset",[])
-      Mhalo = data.get("Mhalo",[])
-      Redshift = data.get("Redshift",[])
+  with bz2.BZ2File(filename, 'r') as fin:    
+    data = pkl.load(fin)
+    dataset = data.get("dataset",[])
+    Mhalo = data.get("Mhalo",[])
+    Redshift = data.get("Redshift",[])
 
   if filename.rfind('_COM') >= 0:
     com = True
@@ -120,8 +117,8 @@ def plotcommand(filename='Full_WMAP5_COM.pkl', plotout=None):
   
     if plotout:
       fig.tight_layout(pad=0.2)
-      print "Plotting to ",plotout+"_CM_relation.png"
-      fig.savefig(plotout+"_CM_relation.png", dpi=fig.dpi*5) 
+      print "Plotting to ",plotname+"_CM_relation.png"
+      fig.savefig(plotname+"_CM_relation.png", dpi=fig.dpi*5) 
     else:
       plt.show()
 
@@ -164,8 +161,8 @@ def plotcommand(filename='Full_WMAP5_COM.pkl', plotout=None):
   
     if plotout:
       fig.tight_layout(pad=0.2)
-      print "Plotting to ",plotout+"_Cz_relation.png"
-      fig.savefig(plotout+"_Cz_relation.png", dpi=fig.dpi*5) 
+      print "Plotting to ",plotname+"_Cz_relation.png"
+      fig.savefig(plotname+"_Cz_relation.png", dpi=fig.dpi*5) 
     else:
       plt.show()
 
@@ -207,8 +204,8 @@ def plotcommand(filename='Full_WMAP5_COM.pkl', plotout=None):
   
     if plotout:
       fig.tight_layout(pad=0.2)
-      print "Plotting to ",plotout+"_zfz_relation.png"
-      fig.savefig(plotout+"_zfz_relation.png", dpi=fig.dpi*5) 
+      print "Plotting to ",plotname+"_zfz_relation.png"
+      fig.savefig(plotname+"_zfz_relation.png", dpi=fig.dpi*5) 
     else:
       plt.show()      
 
@@ -253,8 +250,8 @@ def plotcommand(filename='Full_WMAP5_COM.pkl', plotout=None):
 
   if plotout:
     fig.tight_layout(pad=0.2)
-    print "Plotting to ",plotout+"_MAH_M_relation.png"
-    fig.savefig(plotout+"_MAH_M_relation.png", dpi=fig.dpi*5) 
+    print "Plotting to ",plotname+"_MAH_M_relation.png"
+    fig.savefig(plotname+"_MAH_M_relation.png", dpi=fig.dpi*5) 
   else:
     plt.show()
 
@@ -300,8 +297,8 @@ def plotcommand(filename='Full_WMAP5_COM.pkl', plotout=None):
 
   if plotout:
     fig.tight_layout(pad=0.2)
-    print "Plotting to ",plotout+"_MAH_M_relation.png"
-    fig.savefig(plotout+"_MAH_M_relation.png", dpi=fig.dpi*5) 
+    print "Plotting to ",plotname+"_MAH_M_relation.png"
+    fig.savefig(plotname+"_MAH_M_relation.png", dpi=fig.dpi*5) 
   else:
     plt.show()
 
@@ -347,8 +344,8 @@ def plotcommand(filename='Full_WMAP5_COM.pkl', plotout=None):
 
   if plotout:
     fig.tight_layout(pad=0.2)
-    print "Plotting to ",plotout+"_Mzz_relation.png"
-    fig.savefig(plotout+"_Mzz_relation.png", dpi=fig.dpi*5) 
+    print "Plotting to ",plotname+"_Mzz_relation.png"
+    fig.savefig(plotname+"_Mzz_relation.png", dpi=fig.dpi*5) 
   else:
     plt.show()
 
@@ -394,8 +391,8 @@ def plotcommand(filename='Full_WMAP5_COM.pkl', plotout=None):
 
   if plotout:
     fig.tight_layout(pad=0.2)
-    print "Plotting to ",plotout+"_MzM0z_relation.png"
-    fig.savefig(plotout+"_MzM0z_relation.png", dpi=fig.dpi*5) 
+    print "Plotting to ",plotname+"_MzM0z_relation.png"
+    fig.savefig(plotname+"_MzM0z_relation.png", dpi=fig.dpi*5) 
   else:
     plt.show()
 

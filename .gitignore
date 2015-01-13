@@ -1,4 +1,7 @@
 *.png
 *.pyc
 *.npz
+*.pkl
+*.e*
+*.o*
 *~

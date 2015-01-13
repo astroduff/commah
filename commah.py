@@ -21,6 +21,8 @@ try:
 except:
   import pickle as pkl
 
+import bz2
+
 def getcosmo(cosmology):
   """ Find the cosmological parameters for user provided named cosmology using cosmology.py list """
 
@@ -703,13 +705,14 @@ def creategrid(cosmology, filename=None, zgrid = None, zstart=0., zend=50., delt
     output = ''
 
   if com:
-    output += cosmology+'_COM'+'.pkl'
+    output += cosmology+'_COM'+'.pkl.bz2'
   elif mah:
-    output += cosmology+'_MAH'+'.pkl'
+    output += cosmology+'_MAH'+'.pkl.bz2'
 
   print "Output to ",output
 #  np.savez(output, dataset, M=mgrid, z=zgrid)
-  with open(output,'wb') as fout:
+#  with open(output,'wb') as fout:
+  with bz2.BZ2File(output,'w') as fout:
     pkl.dump(dict(dataset=dataset, Mhalo=mgrid, Redshift=zgrid), fout)
   
   return "Done"
@@ -855,14 +858,15 @@ def loadval(cosmology=None, filename=None, z=None, M=1e12, val='c'):
 
   ## Load the file
   if filename and cosmology:    
-    filein = filename+cosmology+'_COM.pkl'
+    filein = filename+cosmology+'_COM.pkl.bz2'
   elif cosmology:
-    filein = 'Full_'+cosmology+'_COM.pkl'
+    filein = 'Full_'+cosmology+'_COM.pkl.bz2'
   else:
     filein = filename
 
   print "Opening ",filein
-  with open(filein, 'rb') as fin:
+#  with open(filein, 'rb') as fin:
+  with bz2.BZ2File(filein, 'r') as fin:    
       data = pkl.load(fin)
       dataset = data.get("dataset",[])
       Mhalo = data.get("Mhalo",[])
