@@ -283,7 +283,7 @@ def cduffy(z0, M0, vir='200crit', relaxed=True):
 
   return params[0] * ((M0/(2e12/0.72))**params[1]) * ((1.+z0)**params[2])
 
-def minimize_c(c, z0=0., M0=1e10, a_tilde=1., b_tilde=-1., Ascaling = 900., omega_M_0=0.25, omega_lambda_0=0.75):
+def minimize_c(c, z0=0., a_tilde=1., b_tilde=-1., Ascaling = 900., omega_M_0=0.25, omega_lambda_0=0.75):
   """ Trial function to solve 2 equations 17 and 18 from Correa et al 2014b for 1 unknown, the concentration """
 
   """
@@ -304,7 +304,7 @@ def minimize_c(c, z0=0., M0=1e10, a_tilde=1., b_tilde=-1., Ascaling = 900., omeg
 
    CALLING SEQUENCE:
       from comma import *
-      Result = scipy.optimize.brentq(minimize_c, 2., 1000., args=(z0,M0,a_tilde,b_tilde,cosmo['A_scaling'],cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
+      Result = scipy.optimize.brentq(minimize_c, 2., 1000., args=(z0,a_tilde,b_tilde,cosmo['A_scaling'],cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
   
    INPUTS:
          z0: Redshift of original halo
@@ -348,8 +348,18 @@ def minimize_c(c, z0=0., M0=1e10, a_tilde=1., b_tilde=-1., Ascaling = 900., omeg
   ## LHS - RHS should be zero for the correct concentration!  
   return f1-f2
 
+def formationz(c, z0, Ascaling = 900., omega_M_0=0.25, omega_lambda_0=0.75):
+  """ Use equations 17 from Correa et al 2015a to return zf for concentration 'c' at redshift 'z0' """
+
+  Y1 = np.log(2.) - 0.5
+  Yc = np.log(1.+c) - c/(1.+c)
+  rho_2 = 200.*(c**3.)*Y1/Yc
+
+  return ( ((1.+z0)**3. + omega_lambda_0/omega_M_0) * (rho_2/Ascaling) - omega_lambda_0/omega_M_0)**(1./3.) - 1.
+
+
 def calc_ab(z0, M0, **cosmo):
-  """ Calculate parameters a_tilde and b_tilde from Eqns 9 and 10 of Correa et al 2014b """
+  """ Calculate parameters a_tilde and b_tilde from Eqns 9 and 10 of Correa et al 2015a """
 
   """
   +
@@ -539,6 +549,7 @@ def COMLOOP(z_array, Mz_array, a_tilde=None, b_tilde=None, **cosmo):
   c_array = np.empty(np.size(z_array))
   sig0_array = np.empty(np.size(z_array))
   nu_array = np.empty(np.size(z_array))
+  zf_array = np.empty(np.size(z_array))
   ival = 0
   for zval, mzval in itertools.izip(z_array, Mz_array):
     if mzval < 5e-15: #(zval > 45) and (
@@ -546,14 +557,17 @@ def COMLOOP(z_array, Mz_array, a_tilde=None, b_tilde=None, **cosmo):
       c = -1.
       sig0 = -1.
       nu = -1.
+      zf = -1.
     else:
-      c, sig0, nu = COM(zval, mzval, a_tilde=None, b_tilde=None, **cosmo)
+      c, sig0, nu, zf = COM(zval, mzval, a_tilde=None, b_tilde=None, **cosmo)
     c_array[ival] = c
     sig0_array[ival] = sig0
     nu_array[ival] = nu
+    print zval, mzval, zf, c
+    zf_array[ival] = zf
     ival += 1 
 
-  return c_array, sig0_array, nu_array
+  return c_array, sig0_array, nu_array, zf_array
 
 def COM(z0, M0, a_tilde=None, b_tilde=None, **cosmo):
   """ Given a halo mass and redshift calculate the concentration based on equation 17 and 18 from Correa et al 2014b """
@@ -562,27 +576,31 @@ def COM(z0, M0, a_tilde=None, b_tilde=None, **cosmo):
     a_tilde, b_tilde = calc_ab(z0, M0, **cosmo)
   
   ## Use delta to convert best fit constant of proportionality of rho_crit - rho_2 from Correa et al 2014a to this cosmology
-  c = brentq(minimize_c, 2.,1000., args=(z0,M0,a_tilde,b_tilde,cosmo['A_scaling'],cosmo['omega_M_0'],cosmo['omega_lambda_0']))
+  c = brentq(minimize_c, 2.,1000., args=(z0,a_tilde,b_tilde,cosmo['A_scaling'],cosmo['omega_M_0'],cosmo['omega_lambda_0']))
 
-  R0_Mass = cp.perturbation.mass_to_radius(M0, **cosmo) 
+  if np.isclose(c,0.):
+    return -1.,-1.,-1.,-1.
+  else:
+    zf = formationz(c, z0, Ascaling = cosmo['A_scaling'], omega_M_0=cosmo['omega_M_0'], omega_lambda_0=cosmo['omega_lambda_0'])
 
-  sig0, err_sig0 = cp.perturbation.sigma_r(R0_Mass, 0., **cosmo) ## evalulate at z=0 to a good approximation
-  nu = 1.686 / (sig0*growthfactor(z0, norm=True, **cosmo))
+    R0_Mass = cp.perturbation.mass_to_radius(M0, **cosmo) 
 
-  return c, sig0, nu
+    sig0, err_sig0 = cp.perturbation.sigma_r(R0_Mass, 0., **cosmo) ## evalulate at z=0 to a good approximation
+    nu = 1.686 / (sig0*growthfactor(z0, norm=True, **cosmo))
+    return c, sig0, nu, zf
 
 def loopcreategrid():
   """ Call "creategrid" over range of cosmologies and save to individual pickle files for later interrogation """
 
   defaultcosmologies = ('DRAGONS', 'WMAP1', 'WMAP3', 'WMAP5', 'WMAP7', 'WMAP9', 'Planck')
   for cosmology in defaultcosmologies:
-    output = creategrid(cosmology, filename='Full', deltaz=1., deltam=1.)
+    output = creategrid(cosmology, filename='Full', deltaz=0.1, deltam=0.1)
     if output != "Done":
       print "Error with cosmology ",cosmology
 
   return "Done"
 
-def creategrid(cosmology, filename=None, zgrid = None, zstart=0., zend=100., deltaz=0.1, mgrid = None, mstart=1., mend=16., deltam=0.1, logm = True, com=True, mah=False):
+def creategrid(cosmology, filename=None, zgrid = None, zstart=0., zend=50., deltaz=0.1, mgrid = None, mstart=1., mend=16., deltam=0.1, logm = True, com=True, mah=False):
   """ Call "run" over a grid of redshifts and masses and save to a pickle for later interrogation """
 
   """
@@ -662,23 +680,26 @@ def creategrid(cosmology, filename=None, zgrid = None, zstart=0., zend=100., del
       mgrid = 10.**(mgrid)
 
   if com:
-    dataset = np.zeros( (len(mgrid),len(zgrid)), dtype=[('dMdt',float),('c',float),('sig0',float),('nu',float)] )
+    dataset = np.zeros( (len(mgrid),len(zgrid)), dtype=[('dMdt',float),('Mz',float),('c',float),('sig0',float),('nu',float),('zf',float)] )
   elif mah:
-    dataset = np.zeros( (len(mgrid),len(zgrid)), dtype=[('dMdt',float)] )
+    dataset = np.zeros( (len(mgrid),len(zgrid)), dtype=[('dMdt',float),('Mz',float)] )
 
   if com:
     for mind, mloop in enumerate(mgrid):
       print "Solve for Mhalo = ",mloop," Msol, which is mass step ",mind," of ",len(mgrid)
-      z_array, dMdt_array, Mz_array, c, sig0, nu = run(cosmology, z=zgrid, z0=min(zgrid), M0=mloop, com=com, mah=mah)  
+      z_array, dMdt_array, Mz_array, c, sig0, nu, zf = run(cosmology, z=zgrid, z0=min(zgrid), M0=mloop, com=com, mah=mah)  
       dataset[mind,:]['dMdt'] = dMdt_array
+      dataset[mind,:]['Mz'] = Mz_array
       dataset[mind,:]['c'] = c
       dataset[mind,:]['sig0'] = sig0
       dataset[mind,:]['nu'] = nu
+      dataset[mind,:]['zf'] = zf
   elif mah:
     for mind, mloop in enumerate(mgrid):
       print "Solve for Mhalo = ",mloop," Msol, which is mass step ",mind," of ",len(mgrid)
       z_array, dMdt_array, Mz_array = run(cosmology, z=zgrid, z0=min(zgrid), M0=mloop, com=com, mah=mah)  
       dataset[mind,:]['dMdt'] = dMdt_array
+      dataset[mind,:]['Mz'] = Mz_array
 
   if filename:
     output = filename+'_'
@@ -775,17 +796,17 @@ def run(cosmology, z0=0., M0=1e12, z=[0.,1.,2.,3.,4.,5.], com=True, mah=False):
     z_array, dMdt, Mz = MAH(z, z0, M0, **cosmo) 
     if com:
       ## Loop over the COM routine in redshift (and hence diminishing mass at that z) for the initial mass M0 at z0
-      c, sig0, nu = COMLOOP(z_array, Mz, a_tilde=None, b_tilde=None, **cosmo)
-      return z_array, dMdt, Mz, c, sig0, nu
+      c, sig0, nu, zf = COMLOOP(z_array, Mz, a_tilde=None, b_tilde=None, **cosmo)
+      return z_array, dMdt, Mz, c, sig0, nu, zf
     else:
       return z_array, dMdt, Mz
   elif com:
     z_array, dMdt, Mz = MAH(z, z0, M0, **cosmo)  
-    c, sig0, nu = COMLOOP(z_array, Mz, a_tilde=None, b_tilde=None, **cosmo)
+    c, sig0, nu, zf = COMLOOP(z_array, Mz, a_tilde=None, b_tilde=None, **cosmo)
   
-    return z_array, dMdt, Mz, c, sig0, nu
+    return z_array, dMdt, Mz, c, sig0, nu, zf
 
-def loadval(cosmology=None, filename=None, z=0., M=1e12, val='c'):
+def loadval(cosmology=None, filename=None, z=None, M=1e12, val='c'):
   """ Shortcut to interrogate commah datasets for user requested masses and redshifts """
 
 
@@ -817,8 +838,8 @@ def loadval(cosmology=None, filename=None, z=0., M=1e12, val='c'):
    OPTIONAL INPUTS:
           z: Array of redshifts for desired outputs
           M: Array of halo mass for desired outputs
-          val:  Provide a str value to interrogate pickle file i.e. 'dMdt' for acc rate, 'c' for concentration, 
-                'sig0' for sigma fluctuation, 'nu' for dimensionless rareness of fluctuation
+          val:  Provide a str value to interrogate pickle file i.e. 'dMdt' for acc rate, 'c' for concentration, 'Mz' for mass at redshift 'z',
+                'sig0' for sigma fluctuation, 'nu' for dimensionless rareness of fluctuation or 'zf' for formation redshift
    KEYWORD PARAMETERS: 
 
    OUTPUTS:
@@ -837,13 +858,12 @@ def loadval(cosmology=None, filename=None, z=0., M=1e12, val='c'):
 
 
   ## Load the file
-  if filename and cosmology:
-    print "Which files do you want to open? Currently requesting a named file and the provided cosmology files"
-    return -1
-  elif cosmology:    
-    filename = 'Full_'+cosmology+'_COM.pkl'
+  if filename and cosmology:    
+    filein = filename+cosmology+'_COM.pkl'
+  elif cosmology:
+    filein = 'Full_'+cosmology+'_COM.pkl'
   else:
-    filename = filename
+    filein = filename
 
   with open(filename, 'rb') as fin:
       data = pkl.load(fin)
@@ -851,11 +871,14 @@ def loadval(cosmology=None, filename=None, z=0., M=1e12, val='c'):
       Mhalo = data.get("Mhalo",[])
       Redshift = data.get("Redshift",[])
 
-  val_list = ('c','dMdt','sig0','nu') 
-  if val in valist:
+  val_list = ('c','dMdt','Mz','sig0','nu', 'zf') 
+  if val in val_list:
     ## Interpolate the output from commah
     interp = RectBivariateSpline(Mhalo, Redshift, dataset[val])
-    return interp(M,z)
+    if z == None:
+      return interp(M,Redshift)
+    else:
+      return interp(M,z)      
   else:
     print "You requested val= ",val, " the choices are ",val_list
     return -1
@@ -891,6 +914,18 @@ def runexamples(cosmology='WMAP5'):
   print "Concentrations for haloes of mass ", M, " at z=",z
   print loadval(cosmology = cosmology, z=z, M=M, val = 'dMdt')
 
+  ## Return the WMAP5 cosmology Halo Mass History for haloes with M(z=0) = 1e8
+  M = [1e8]
+  z = [0.,0.5,1.,1.5,2.,2.5]
+  print "Halo Mass History for z=0 mass of ", M, " across z=",z
+  print loadval(cosmology = cosmology, z=z, M=M, val = 'Mz')
+
+  ## Return the WMAP5 cosmology formation redshifts for haloes at range of redshift and mass
+  M = [1e8, 1e9, 1e10]
+  z = [0.]
+  print "Formation Redshifts for haloes of mass ", M, " at z=",z
+  print loadval(cosmology = cosmology, z=z, M=M, val = 'zf')
+
   return "Done"
 
 def plotexamples(filename='Full_WMAP5_COM.pkl', plotout=None):
@@ -915,12 +950,10 @@ def plotexamples(filename='Full_WMAP5_COM.pkl', plotout=None):
       Redshift = data.get("Redshift",[])
 
   if filename.rfind('_COM') >= 0:
-    print filename + " has Concentration - Mass relation "
     com = True
-    mah = False
+    mah = True
 
   if filename.rfind('_MAH') >= 0:
-    print filename + " has Mass Accretion and Halo Concentration history "
     com = False
     mah = True
 
@@ -940,7 +973,7 @@ def plotexamples(filename='Full_WMAP5_COM.pkl', plotout=None):
     ## Specify the redshift range
     zarray = np.arange(0.,5.,0.5)
 
-    xtitle = r"Halo Mass h$^{-1}$ M$_{sol}$"
+    xtitle = r"Halo Mass (h$^{-1}$ M$_{sol}$)"
     ytitle = r"Concentration"
     linelabel = "z="
 
@@ -952,7 +985,7 @@ def plotexamples(filename='Full_WMAP5_COM.pkl', plotout=None):
 
     for zind, zval in enumerate(zarray):
       ## Interpolate to the desired output values
-      yarray = interp(xarray,zarray[zind])
+      yarray = interp(xarray,zarray[zind]).flatten()
 
       ## Plot each line in turn with different colour   
       ax.plot(xarray, yarray, label=linelabel+str(zval), color=colors[zind],)
@@ -977,6 +1010,93 @@ def plotexamples(filename='Full_WMAP5_COM.pkl', plotout=None):
     else:
       plt.show()
 
+
+  ## Plot the c-z relation as a function of mass
+    xval = 'z'
+    xarray = 10.**(np.arange(0.,1.,0.01)) - 1.
+    yval = 'c'
+
+    ## Interpolate the output from commah
+    interp = RectBivariateSpline(Mhalo, Redshift, dataset[yval])
+ 
+    ## Specify the mass range
+    zarray = np.arange(6.,15.,2.)
+
+    xtitle = r"Redshift"
+    ytitle = r"NFW Concentration"
+    linelabel = r"log M$_{0}$(h$^{-1}$ M$_{sol}$)="
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlabel(xtitle)            
+    ax.set_ylabel(ytitle)   
+    colors = cm.rainbow(np.linspace(0, 1, len(zarray)))
+
+    for zind, zval in enumerate(zarray):
+      ## Interpolate to the desired output values
+      yarray = interp(10.**zval,xarray).flatten()
+
+      ## Plot each line in turn with different colour   
+      ax.plot(xarray, yarray, label=linelabel+"{0:.1f}".format( zval ), color=colors[zind],)
+
+    leg = ax.legend(loc=1)
+    leg.get_frame().set_alpha(0) # this will make the box totally transparent
+    leg.get_frame().set_edgecolor('white')
+    for label in leg.get_texts():                
+      label.set_fontsize('small') # the font size   
+    for label in leg.get_lines():
+      label.set_linewidth(4)  # the legend line width
+  
+    if plotout:
+      fig.tight_layout(pad=0.2)
+      print "Plotting to ",plotout+"_Cz_relation.png"
+      fig.savefig(plotout+"_Cz_relation.png", dpi=fig.dpi*5) 
+    else:
+      plt.show()
+
+  ## Plot the zf-z relation as a function of redshift
+    xval = 'z'
+    xarray = 10.**(np.arange(0.,1.,0.01)) - 1.
+    yval = 'zf'
+
+    ## Interpolate the output from commah
+    interp = RectBivariateSpline(Mhalo, Redshift, dataset[yval])
+ 
+    ## Specify the mass range
+    zarray = np.arange(6.,15.,2.)
+
+    xtitle = r"Redshift"
+    ytitle = r"Formation Redshift"
+    linelabel = r"log M$_0$(h$^{-1}$ M$_{sol}$)="
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlabel(xtitle)            
+    ax.set_ylabel(ytitle)   
+    colors = cm.rainbow(np.linspace(0, 1, len(zarray)))
+
+    for zind, zval in enumerate(zarray):
+      ## Interpolate to the desired output values
+      yarray = interp(10.**zval,xarray).flatten()
+
+      ## Plot each line in turn with different colour   
+      ax.plot(xarray, yarray, label=linelabel+"{0:.1f}".format( zval ), color=colors[zind],)
+
+    leg = ax.legend(loc=1)
+    leg.get_frame().set_alpha(0) # this will make the box totally transparent
+    leg.get_frame().set_edgecolor('white')
+    for label in leg.get_texts():                
+      label.set_fontsize('small') # the font size   
+    for label in leg.get_lines():
+      label.set_linewidth(4)  # the legend line width
+  
+    if plotout:
+      fig.tight_layout(pad=0.2)
+      print "Plotting to ",plotout+"_zfz_relation.png"
+      fig.savefig(plotout+"_zfz_relation.png", dpi=fig.dpi*5) 
+    else:
+      plt.show()      
+
 ## Plot the dMdt-M relation as a function of redshift
   xval = 'M'
   xarray = 10.**(np.arange(1.,15.,1.))
@@ -1000,7 +1120,7 @@ def plotexamples(filename='Full_WMAP5_COM.pkl', plotout=None):
 
   for zind, zval in enumerate(zarray):
     ## Interpolate to the desired output values
-    yarray = interp(xarray,zarray[zind])
+    yarray = interp(xarray,zval).flatten()
 
     ## Plot each line in turn with different colour   
     ax.plot(xarray, yarray, label=linelabel+str(zval), color=colors[zind],)
@@ -1047,7 +1167,7 @@ def plotexamples(filename='Full_WMAP5_COM.pkl', plotout=None):
 
   for zind, zval in enumerate(zarray):
     ## Interpolate to the desired output values
-    yarray = interp(xarray,zarray[zind])/xarray
+    yarray = interp(xarray,zval).flatten()/xarray
 
     ## Plot each line in turn with different colour   
     ax.plot(xarray, yarray, label=linelabel+str(zval), color=colors[zind],)
@@ -1067,6 +1187,100 @@ def plotexamples(filename='Full_WMAP5_COM.pkl', plotout=None):
     fig.tight_layout(pad=0.2)
     print "Plotting to ",plotout+"_MAH_M_relation.png"
     fig.savefig(plotout+"_MAH_M_relation.png", dpi=fig.dpi*5) 
+  else:
+    plt.show()
+
+
+
+## Plot the Mz-z relation as a function of mass
+  xval = 'z'
+  xarray = 10.**(np.arange(0.,1.,0.01)) - 1.
+  yval = 'Mz'
+
+  ## Interpolate the output from commah
+  interp = RectBivariateSpline(Mhalo, Redshift, dataset[yval])
+
+  ## Specify the mass range
+  zarray = np.arange(6.,15.,2.)
+
+  xtitle = r"Redshift"
+  ytitle = r"M(z) (h$^{-1}$ M$_{sol}$)"
+  linelabel = r"log M$_{0}$(h$^{-1}$ M$_{sol}$)="
+
+  fig = plt.figure()
+  ax = fig.add_subplot(111)
+  ax.set_xlabel(xtitle)            
+  ax.set_ylabel(ytitle)   
+  colors = cm.rainbow(np.linspace(0, 1, len(zarray)))
+
+  for zind, zval in enumerate(zarray):
+    ## Interpolate to the desired output values
+    yarray = interp(10.**zval,xarray).flatten()
+
+    ## Plot each line in turn with different colour   
+    ax.plot(xarray, yarray, label=linelabel+"{0:.1f}".format( zval ), color=colors[zind],)
+
+  ax.set_yscale('log')
+
+  leg = ax.legend(loc=1)
+  leg.get_frame().set_alpha(0) # this will make the box totally transparent
+  leg.get_frame().set_edgecolor('white')
+  for label in leg.get_texts():                
+    label.set_fontsize('small') # the font size   
+  for label in leg.get_lines():
+    label.set_linewidth(4)  # the legend line width
+
+  if plotout:
+    fig.tight_layout(pad=0.2)
+    print "Plotting to ",plotout+"_Mzz_relation.png"
+    fig.savefig(plotout+"_Mzz_relation.png", dpi=fig.dpi*5) 
+  else:
+    plt.show()
+
+
+## Plot the Mz/M0-z relation as a function of mass
+  xval = 'z'
+  xarray = 10.**(np.arange(0.,1.,0.01)) - 1.
+  yval = 'Mz'
+
+  ## Interpolate the output from commah
+  interp = RectBivariateSpline(Mhalo, Redshift, dataset[yval])
+
+  ## Specify the mass range
+  zarray = np.arange(6.,15.,2.)
+
+  xtitle = r"Redshift"
+  ytitle = r"M(z)/M$_{0}$"
+  linelabel = r"log M$_{0}$(h$^{-1}$ M$_{sol}$)="
+
+  fig = plt.figure()
+  ax = fig.add_subplot(111)
+  ax.set_xlabel(xtitle)            
+  ax.set_ylabel(ytitle)   
+  colors = cm.rainbow(np.linspace(0, 1, len(zarray)))
+
+  for zind, zval in enumerate(zarray):
+    ## Interpolate to the desired output values
+    yarray = interp(10.**zval,xarray).flatten()
+
+    ## Plot each line in turn with different colour   
+    ax.plot(xarray, yarray/10.**zval, label=linelabel+"{0:.1f}".format( zval ), color=colors[zind],)
+
+  ax.set_xscale('log')
+  ax.set_yscale('log')
+
+  leg = ax.legend(loc=3)
+  leg.get_frame().set_alpha(0) # this will make the box totally transparent
+  leg.get_frame().set_edgecolor('white')
+  for label in leg.get_texts():                
+    label.set_fontsize('small') # the font size   
+  for label in leg.get_lines():
+    label.set_linewidth(4)  # the legend line width
+
+  if plotout:
+    fig.tight_layout(pad=0.2)
+    print "Plotting to ",plotout+"_MzM0z_relation.png"
+    fig.savefig(plotout+"_MzM0z_relation.png", dpi=fig.dpi*5) 
   else:
     plt.show()
 
