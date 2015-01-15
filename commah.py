@@ -14,14 +14,85 @@ from scipy.interpolate import RectBivariateSpline
 import numpy as np
 import cosmolopy as cp
 import cosmology_list as cg
+
 import itertools
 
-try:
-  import cPickle as pkl
-except:
-  import pickle as pkl
+def checkinput(zi,Mi,z=None, verbose=None):
+  """ Ensure user input be it scalar, array or numpy array don't break the code """
 
-import bz2
+  ## How many halo redshifts provided?
+  if hasattr(zi, "__len__"):
+    lenz = 0
+    for test in zi:
+      lenz += 1
+    zi = np.array(zi)
+  else:
+    lenz = 1
+    zi = np.array([zi]) ## Ensure itertools can work
+  
+  ## How many halo masses provided?
+  if hasattr(Mi, "__len__"):
+    lenm = 0
+    for test in Mi:
+      lenm += 1  
+    Mi = np.array(Mi)
+  else:
+    lenm = 1
+    Mi = np.array([Mi]) ## Ensure itertools can work
+
+  ## How many redshifts to output?
+  if z:
+    if hasattr(z, "__len__"):
+      lenzout = 0
+      for test in z:
+        lenzout += 1  
+      z = np.array(z)        
+    else:
+      lenzout = 1
+      z = np.array([z]) ## Ensure itertools can work
+  else:
+  ## Just output at the input redshifts, in which case Mz = Mi for example
+    lenzout = lenz
+    z = zi
+
+  ## Check the input sizes for zi and Mi make sense, if not then exit unless 
+  ## one axis is length one, in which case replicate values to the size of the other
+  if (lenz > 1) & (lenm > 1):
+    if lenz != lenm:
+      print "Error ambiguous request"
+      print "Need individual redshifts for all haloes provided or all haloes at same redshift "
+      return -1
+  elif (lenz == 1) & (lenm > 1):
+    if verbose:
+      print "Assume zi is the same for all Mi halo masses provided"
+    ## Replicate redshift for all halo masses
+    tmpz = zi
+    zi = np.empty(lenm)
+    if hasattr(tmpz, "__len__") == False:
+      zi.fill(tmpz)
+    else:
+      zi.fill(tmpz[0])
+    lenz=lenm
+  elif (lenm == 1) & (lenz > 1):
+    if verbose:
+      print "Assume Mi halo masses are the same for all zi provided"
+    ## Replicate redshift for all halo masses
+    tmpm = Mi
+    Mi = np.empty(lenz)
+    if hasattr(tmpm, "__len__") == False:
+      Mi.fill(tmpm)
+    else:
+      Mi.fill(tmpm[0])      
+    lenm=lenz
+  else:
+    if verbose:
+      print "A single Mi and zi provided"
+    if hasattr(zi, "__len__") == False:
+      zi = np.array(zi)
+    if hasattr(Mi, "__len__") == False:
+      Mi = np.array(Mi)
+
+  return zi, Mi, z, lenz, lenm, lenzout
 
 def getcosmo(cosmology):
   """ Find the cosmological parameters for user provided named cosmology using cosmology.py list """
@@ -44,13 +115,6 @@ def getcosmo(cosmology):
   ## Use the cosmology as **cosmo passed to cosmolopy routines
   return cosmo
 
-def cosmotodict(cosmo=None):
-  """ Convert astropy cosmology to cosmolopy cosmology dict, still to do! Currently directly using cosmology.py list """
-
-#def inv_h(z, **cosmo):
-#  """ Inverse Hubble factor to be integrated """
-#  return (1.+z)/(cosmo['omega_M_0']*(1.+z)**3.+cosmo['omega_lambda_0'])**(1.5)
-
 def delta_sigma(**cosmo):
   """ Calculate delta_sigma (propto formation time) to convert best-fit parameter of rho_crit - rho_2 relation between cosmologies, WMAP5 standard (Correa et al 2014a) """
 
@@ -68,6 +132,7 @@ def delta_sigma(**cosmo):
    REQUIREMENTS:
           import numpy
           import cosmolopy
+          import scipy
 
    CALLING SEQUENCE:
       from commah import *
@@ -112,6 +177,7 @@ def getAscaling(cosmology, newcosmo=False):
    REQUIREMENTS:
           import numpy
           import cosmolopy
+          import scipy
 
    CALLING SEQUENCE:
       from comma import *
@@ -182,6 +248,7 @@ def deriv_growth(z, **cosmo):
    REQUIREMENTS:
           import numpy
           import cosmolopy
+          import scipy
 
    CALLING SEQUENCE:
       from comma import *
@@ -228,6 +295,7 @@ def growthfactor(z, norm=True, **cosmo):
    REQUIREMENTS:
           import numpy
           import cosmolopy
+          import scipy
 
    CALLING SEQUENCE:
       from comma import *
@@ -260,29 +328,7 @@ def growthfactor(z, norm=True, **cosmo):
     growthval /= int_growth(0., **cosmo) 
   return growthval
 
-def cduffy(z0, M0, vir='200crit', relaxed=True):
-  """ Give a halo mass and redshift calculate the NFW concentration based on Duffy 08 Table 1 for relaxed / vir def """
-  if vir == '200crit':
-    if relaxed == True:
-      params = [6.71, -0.091, -0.44]
-    else:
-      params = [5.71, -0.084, -0.47]
-  elif vir == 'tophat':
-    if relaxed == True:
-      params = [9.23, -0.090, -0.69]
-    else:
-      params = [7.85, -0.081, -0.71]
-  elif vir == '200mean':
-    if relaxed == True:
-      params = [11.93, -0.090, -0.99]
-    else:
-      params = [10.14, -0.081, -1.01]
-  else:
-    print "Didn't recognise the halo boundary definition provided ", vir
-
-  return params[0] * ((M0/(2e12/0.72))**params[1]) * ((1.+z0)**params[2])
-
-def minimize_c(c, z0=0., a_tilde=1., b_tilde=-1., Ascaling = 900., omega_M_0=0.25, omega_lambda_0=0.75):
+def minimize_c(c, z=0., a_tilde=1., b_tilde=-1., Ascaling = 900., omega_M_0=0.25, omega_lambda_0=0.75, halodef=200.):
   """ Trial function to solve 2 equations 17 and 18 from Correa et al 2014b for 1 unknown, the concentration """
 
   """
@@ -291,7 +337,7 @@ def minimize_c(c, z0=0., a_tilde=1., b_tilde=-1., Ascaling = 900., omega_M_0=0.2
          minimize_c
   
    PURPOSE:
-         Function to minimize to solution for the concentration of a halo mass M0 at z0, solving when f1 = f2 in Correa et al 2014b (eqns 17 & 18)
+         Function to minimize to solution for the concentration of a halo mass M at z, solving when f1 = f2 in Correa et al 2014b (eqns 17 & 18)
 
    CATEGORY:
          Function
@@ -303,14 +349,14 @@ def minimize_c(c, z0=0., a_tilde=1., b_tilde=-1., Ascaling = 900., omega_M_0=0.2
 
    CALLING SEQUENCE:
       from comma import *
-      Result = scipy.optimize.brentq(minimize_c, 2., 1000., args=(z0,a_tilde,b_tilde,cosmo['A_scaling'],cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
+      Result = scipy.optimize.brentq(minimize_c, 2., 1000., args=(z,a_tilde,b_tilde,cosmo['A_scaling'],cosmo['omega_M_0'],cosmo['omega_lambda_0'])) 
   
    INPUTS:
-         z0: Redshift of original halo
-         M0: Mass of original halo at redshift z0
+         z: Redshift of halo in question
+         M: Mass of halo at redshift z
          A_scaling: A scaling between cosmologies, set into cosmo dict using getAscaling function
-         a_tilde: power law growth rate factor
-         b_tilde: exponential growth rate factor
+         a_tilde: power law growth rate factor (set by M,z)
+         b_tilde: exponential growth rate factor (set by M,z)
          cosmo: dictionary of cosmology, in particular two properties only Total Matter density as cosmo['omega_M_0'] and DE density as cosmo['omega_lambda_0']
 
    OPTIONAL INPUTS:
@@ -338,26 +384,26 @@ def minimize_c(c, z0=0., a_tilde=1., b_tilde=-1., Ascaling = 900., omega_M_0=0.2
   #############################################  
 
   ## Eqn 14 - Define the mean inner density
-  rho_2 = 200.*(c**3.)*Y1/Yc
+  rho_2 = halodef*(c**3.)*Y1/Yc
   ## Eqn 17 rearranged to solve for Formation Redshift (essentially when universe had rho_2 density)
-  zf = ( ((1.+z0)**3. + omega_lambda_0/omega_M_0) * (rho_2/Ascaling) - omega_lambda_0/omega_M_0)**(1./3.) - 1.
+  zf = ( ((1.+z)**3. + omega_lambda_0/omega_M_0) * (rho_2/Ascaling) - omega_lambda_0/omega_M_0)**(1./3.) - 1.
   ## RHS of Eqn 19
-  f2 = ((1.+zf-z0)**a_tilde) * np.exp((zf-z0)*b_tilde)
+  f2 = ((1.+zf-z)**a_tilde) * np.exp((zf-z)*b_tilde)
 
   ## LHS - RHS should be zero for the correct concentration!  
   return f1-f2
 
-def formationz(c, z0, Ascaling = 900., omega_M_0=0.25, omega_lambda_0=0.75):
+def formationz(c, z, Ascaling = 900., omega_M_0=0.25, omega_lambda_0=0.75, halodef=200.):
   """ Use equations 17 from Correa et al 2015a to return zf for concentration 'c' at redshift 'z0' """
 
   Y1 = np.log(2.) - 0.5
   Yc = np.log(1.+c) - c/(1.+c)
-  rho_2 = 200.*(c**3.)*Y1/Yc
+  rho_2 = halodef*(c**3.)*Y1/Yc
 
-  return ( ((1.+z0)**3. + omega_lambda_0/omega_M_0) * (rho_2/Ascaling) - omega_lambda_0/omega_M_0)**(1./3.) - 1.
+  return ( ((1.+z)**3. + omega_lambda_0/omega_M_0) * (rho_2/Ascaling) - omega_lambda_0/omega_M_0)**(1./3.) - 1.
 
 
-def calc_ab(z0, M0, **cosmo):
+def calc_ab(zi, Mi, **cosmo):
   """ Calculate parameters a_tilde and b_tilde from Eqns 9 and 10 of Correa et al 2015a """
 
   """
@@ -378,11 +424,11 @@ def calc_ab(z0, M0, **cosmo):
 
    CALLING SEQUENCE:
       from comma import *
-      a_tilde, b_tilde = calc_ab(z0, M0, **cosmo)
+      a_tilde, b_tilde = calc_ab(zi, Mi, **cosmo)
   
    INPUTS:
-         z0: Redshift of original halo
-         M0: Mass of original halo at redshift z0
+         zi: Redshift of halo
+         Mi: Mass of halo at redshift zi
          cosmo: dictionary of cosmology
 
    OPTIONAL INPUTS:
@@ -394,35 +440,34 @@ def calc_ab(z0, M0, **cosmo):
           a_tilde: power law growth rate factor
           b_tilde: exponential growth rate factor
  
-
    MODIFICATION HISTORY (by Alan Duffy):
           
           2/12/14 IDL version by Camila Correa translated to Python by Alan Duffy
           Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
   """
   
-  # When z0 = 0, the a_tilde becomes alpha and b_tilde becomes beta
-  zf = -0.0064*(np.log10(M0))**2. + 0.02373*(np.log10(M0)) + 1.8837
+  # When zi = 0, the a_tilde becomes alpha and b_tilde becomes beta
+  zf = -0.0064*(np.log10(Mi))**2. + 0.02373*(np.log10(Mi)) + 1.8837
 
   q = 10.**(0.6167)*zf**(-0.9476)
 
-  R0_Mass = cp.perturbation.mass_to_radius(M0, **cosmo) 
-  Rq_Mass = cp.perturbation.mass_to_radius(M0/q, **cosmo) 
+  R_Mass = cp.perturbation.mass_to_radius(Mi, **cosmo) 
+  Rq_Mass = cp.perturbation.mass_to_radius(Mi/q, **cosmo) 
 
-  sig0, err_sig0 = cp.perturbation.sigma_r(R0_Mass, 0., **cosmo) ## evalulate at z=0 to a good approximation
+  sig, err_sig = cp.perturbation.sigma_r(R_Mass, 0., **cosmo) ## evalulate at z=0 to a good approximation
   sigq, err_sigq = cp.perturbation.sigma_r(Rq_Mass, 0., **cosmo) ## evalulate at z=0 to a good approximation
 
-  f = (sigq**2. - sig0**2.)**(-0.5)  
+  f = (sigq**2. - sig**2.)**(-0.5)  
   
   ## Eqn 9 a_tilde is power law growth rate from Correa et al 2014b
-  a_tilde = (np.sqrt(2./np.pi)*1.686*deriv_growth(z0, **cosmo)/ growthfactor(z0, norm=True, **cosmo)**2. + 1.)*f
+  a_tilde = (np.sqrt(2./np.pi)*1.686*deriv_growth(zi, **cosmo)/ growthfactor(zi, norm=True, **cosmo)**2. + 1.)*f
   ## Eqn 10 b_tilde is exponential growth rate from Correa et al 2014b
   b_tilde = -f
 
   return a_tilde, b_tilde
 
-def acc_rate(z, z0, M0, a_tilde=None, b_tilde=None, **cosmo):
-  """ Compute Mass Accretion Rate at redshift 'z' given halo of mass M0 at redshift z0, with z0<z always """
+def acc_rate(z, zi, Mi, **cosmo):
+  """ Compute Mass Accretion Rate at redshift 'z' given halo of mass Mi at redshift zi, with zi<z always """
 
 
   """
@@ -443,23 +488,21 @@ def acc_rate(z, z0, M0, a_tilde=None, b_tilde=None, **cosmo):
 
    CALLING SEQUENCE:
       from comma import *
-      dMdt, Mz, a_tilde, b_tilde = calc_ab(z, z0, M0 [, a_tilde=None, b_tilde=None], **cosmo)
+      dMdt, Mz, a_tilde, b_tilde = arr_rate(z, zi, Mi, **cosmo)
   
    INPUTS:
          z: Redshift of halo at which acc_rate and mass is desired
-         z0: Redshift of original halo (note that z0 < z always)
-         M0: Mass of original halo at redshift z0 (Msol)
+         zi: Redshift of original halo (note that zi < z always)
+         Mi: Mass of original halo at redshift zi (Msol)
          cosmo: dictionary of cosmology
 
-   OPTIONAL INPUTS (set to None):
-         a_tilde: power law growth rate factor, if not provided will be calculated
-         b_tilde: exponential growth rate factor, if not provided will be calculated
-  
+   OPTIONAL INPUTS:
+
    KEYWORD PARAMETERS:
 
    OUTPUTS:
          4 floats
-         dMdt: accretion rate of halo at redshift z (Msol Gyr^-1)
+         dMdt: accretion rate of halo at redshift z (Msol yr^-1)
          Mz: mass of halo at redshift z
          a_tilde: power law growth rate factor
          b_tilde: exponential growth rate factor
@@ -471,18 +514,17 @@ def acc_rate(z, z0, M0, a_tilde=None, b_tilde=None, **cosmo):
           Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
   """
   ## Uses parameters a_tilde and b_tilde following eqns 9 and 10 from Correa et al 2014b 
+  a_tilde, b_tilde = calc_ab(zi, Mi, **cosmo)
 
-  if a_tilde == None or b_tilde == None:
-    a_tilde, b_tilde = calc_ab(z0, M0, **cosmo)
+  ## Accretion rate at z, Msol yr^-1
+  Mz = np.log10(Mi) + np.log10( (1.+z-zi)**a_tilde * np.exp(b_tilde *(z-zi)) )
+  dMdt = np.log10(71.59*(cosmo['h']/0.7)*(-a_tilde - b_tilde*(1.+z-zi))*
+    (10.**(Mz-12.))*np.sqrt(cosmo['omega_M_0']*(1.+z-zi)**3.+cosmo['omega_lambda_0']))
 
-  ## Accretion rate at z, Msol Gyr^-1
-  Mz = np.log10(M0) + np.log10( (1.+z-z0)**a_tilde * np.exp(b_tilde *(z-z0)) )
-  dMdt = 9. + np.log10(71.59*(cosmo['h']/0.7)*(-a_tilde - b_tilde*(1.+z-z0))*(10.**(Mz-12.))*np.sqrt(cosmo['omega_M_0']*(1.+z-z0)**3.+cosmo['omega_lambda_0']))
+  return 10.**dMdt, 10.**Mz
 
-  return 10.**dMdt, 10.**Mz, a_tilde, b_tilde
-
-def MAH(z, z0, M0, **cosmo):
-  """ Compute Mass Accretion History at redshift 'z' given halo of mass M0 at redshift z0, with z0<z always """
+def MAH(z, zi, Mi, **cosmo):
+  """ Compute Mass Accretion History at redshift 'z' given halo of mass Mi at redshift zi, with zi<z always """
 
   """
   +
@@ -502,12 +544,12 @@ def MAH(z, z0, M0, **cosmo):
 
    CALLING SEQUENCE:
       from comma import *
-      z_array, dMdt_array, Mz_array = MAH(z, z0, M0, **cosmo)
+      dMdt_array, Mz_array = MAH(z, zi, Mi, **cosmo)
   
    INPUTS:
          z: Redshift of halo at which acc_rate and mass is desired
-         z0: Redshift of original halo (note that z0 < z always)
-         M0: Mass of original halo at redshift z0
+         zi: Redshift of original halo (note that zi < z always)
+         Mi: Mass of original halo at redshift zi
          cosmo: dictionary of cosmology
 
    OPTIONAL INPUTS:
@@ -515,10 +557,8 @@ def MAH(z, z0, M0, **cosmo):
    KEYWORD PARAMETERS:
 
    OUTPUTS:
-          Array showing full dMdt and Mz growth rate in deltaz steps
-          z_array: redshit steps between z0 and z in steps of deltaz
-          dMdt_array: accretion rate of halo from z0 to redshift z (Msol Gyr^-1)
-          Mz_array: mass of halo growth from z0 to redshift z 
+          dMdt_array: accretion rate of halo with mass Mi at redshift zi at redshifts z (Msol yr^-1)
+          Mz_array: Mass of halo at redshift z when it was a halo with mass Mi at redshift zi (Msol)
 
    MODIFICATION HISTORY (by Alan Duffy):
           
@@ -530,195 +570,57 @@ def MAH(z, z0, M0, **cosmo):
   dMdt_array = np.empty(np.size(z))
   Mz_array = np.empty(np.size(z))
 
-  for ival, zval in enumerate(z):
-    if ival == 0:
-      ## Uses parameters a_tilde and b_tilde following eqns 9 and 10 from Correa et al 2014b 
-      dMdt, Mz, a_tilde, b_tilde = acc_rate(zval, z0, M0, **cosmo)
-    else:
-      dMdt, Mz, a_tilde, b_tilde = acc_rate(zval, z0, M0, a_tilde=a_tilde, b_tilde=b_tilde, **cosmo)
+  for i_ind, zval in enumerate(z):
+    ## Uses parameters a_tilde and b_tilde following eqns 9 and 10 from Correa et al 2014b 
+    dMdt, Mz = acc_rate(zval, zi, Mi, **cosmo)
 
-    dMdt_array[ival] = dMdt
-    Mz_array[ival] = Mz
+    dMdt_array[i_ind] = dMdt
+    Mz_array[i_ind] = Mz
 
-  return z, dMdt_array, Mz_array
+  return dMdt_array, Mz_array
 
-def COMLOOP(z_array, Mz_array, a_tilde=None, b_tilde=None, **cosmo):
-  """ Loop com call over a range of redshifts/masses """
+def COM(z, M, **cosmo):
+  """ Given a halo mass and redshift calculate the concentration based on equation 17 and 18 from Correa et al 2014b """
 
-  c_array = np.empty(np.size(z_array))
-  sig0_array = np.empty(np.size(z_array))
-  nu_array = np.empty(np.size(z_array))
-  zf_array = np.empty(np.size(z_array))
-  ival = 0
-  for zval, mzval in itertools.izip(z_array, Mz_array):
-    if mzval < 5e-15: #(zval > 45) and (
-      #print "Skip impossibly small objects as they give round off errors, set c, sig0 and nu to -1"
+  ## Create array
+  c_array = np.empty(np.size(z))
+  sig_array = np.empty(np.size(z))
+  nu_array = np.empty(np.size(z))
+  zf_array = np.empty(np.size(z))
+
+  i_ind = 0
+  for zval, Mval in itertools.izip(z, M):
+
+    a_tilde, b_tilde = calc_ab(zval, Mval, **cosmo)
+    
+    ## Use delta to convert best fit constant of proportionality of rho_crit - rho_2 from Correa et al 2014a to this cosmology
+    c = brentq(minimize_c, 2.,1000., args=(zval,a_tilde,b_tilde,cosmo['A_scaling'],cosmo['omega_M_0'],cosmo['omega_lambda_0']))
+
+    if np.isclose(c,0.):
+      print "Error solving for concentration at this redshift with (probably) too small a mass "
       c = -1.
-      sig0 = -1.
+      sig = -1.
       nu = -1.
       zf = -1.
     else:
-      c, sig0, nu, zf = COM(zval, mzval, a_tilde=None, b_tilde=None, **cosmo)
-    c_array[ival] = c
-    sig0_array[ival] = sig0
-    nu_array[ival] = nu
-    zf_array[ival] = zf
-    ival += 1 
+      zf = formationz(c, zval, Ascaling = cosmo['A_scaling'], omega_M_0=cosmo['omega_M_0'], omega_lambda_0=cosmo['omega_lambda_0'])
 
-  return c_array, sig0_array, nu_array, zf_array
+      R_Mass = cp.perturbation.mass_to_radius(Mval, **cosmo) 
 
-def COM(z0, M0, a_tilde=None, b_tilde=None, **cosmo):
-  """ Given a halo mass and redshift calculate the concentration based on equation 17 and 18 from Correa et al 2014b """
+      sig, err_sig = cp.perturbation.sigma_r(R_Mass, 0., **cosmo) ## evalulate at z=0 to a good approximation
+      nu = 1.686 / (sig*growthfactor(zval, norm=True, **cosmo))
 
-  if a_tilde == None or b_tilde == None:
-    a_tilde, b_tilde = calc_ab(z0, M0, **cosmo)
-  
-  ## Use delta to convert best fit constant of proportionality of rho_crit - rho_2 from Correa et al 2014a to this cosmology
-  c = brentq(minimize_c, 2.,1000., args=(z0,a_tilde,b_tilde,cosmo['A_scaling'],cosmo['omega_M_0'],cosmo['omega_lambda_0']))
+    c_array[i_ind] = c
+    sig_array[i_ind] = sig
+    nu_array[i_ind] = nu
+    zf_array[i_ind] = zf
 
-  if np.isclose(c,0.):
-    return -1.,-1.,-1.,-1.
-  else:
-    zf = formationz(c, z0, Ascaling = cosmo['A_scaling'], omega_M_0=cosmo['omega_M_0'], omega_lambda_0=cosmo['omega_lambda_0'])
+    i_ind +=1
 
-    R0_Mass = cp.perturbation.mass_to_radius(M0, **cosmo) 
+  return c_array, sig_array, nu_array, zf_array
 
-    sig0, err_sig0 = cp.perturbation.sigma_r(R0_Mass, 0., **cosmo) ## evalulate at z=0 to a good approximation
-    nu = 1.686 / (sig0*growthfactor(z0, norm=True, **cosmo))
-    return c, sig0, nu, zf
-
-def loopcreategrid():
-  """ Call "creategrid" over range of cosmologies and save to individual pickle files for later interrogation """
-
-  defaultcosmologies = ('DRAGONS', 'WMAP1', 'WMAP3', 'WMAP5', 'WMAP7', 'WMAP9', 'Planck')
-  for cosmology in defaultcosmologies:
-    output = creategrid(cosmology, filename='Full', deltaz=0.1, deltam=0.1)
-    if output != "Done":
-      print "Error with cosmology ",cosmology
-
-  return "Done"
-
-def creategrid(cosmology, filename=None, zgrid = None, zstart=0., zend=50., deltaz=0.1, mgrid = None, mstart=1., mend=16., deltam=0.1, logm = True, com=True, mah=False):
-  """ Call "run" over a grid of redshifts and masses and save to a pickle for later interrogation """
-
-  """
-  +
-   NAME:
-         creategrid
-  
-   PURPOSE:
-         This function calls 'run' across a user defined redshift and mass range, this output is saved as a pickle
-         file for future fast interpolation and plotting
-  
-   CATEGORY:
-         Function
-  
-   REQUIREMENTS:
-          import numpy
-          import cosmolopy
-          import pickle
-          import scipy
-
-   CALLING SEQUENCE:
-      from commah import *
-      Result = creategrid(cosmology [, filename=False, zstart=0., zend=100., deltaz=0.1, logz=False, mstart=1., mend=1e14, deltam=0.1, logm=True])
-  
-   INPUTS:
-         cosmology: Either a name for a cosmology, default WMAP7 (aka DRAGONS), such as DRAGONS, WMAP1, WMAP3, WMAP5, WMAP7, WMAP9, Planck
-                or a dictionary like: 
-                {'N_nu': 0,'Y_He': 0.24, 'h': 0.702, 'n': 0.963,'omega_M_0': 0.275,'omega_b_0': 0.0458,'omega_lambda_0': 0.725,
-                'omega_n_0': 0.0, 'sigma_8': 0.816, 't_0': 13.76, 'tau': 0.088,'z_reion': 10.6}
-
-   OPTIONAL INPUTS:
-         filename:  If passed then output to " filename+'_'+cosmology+'_COM'/'_MAH'+'.npz' "
-         zgrid:     User provided redshift spacings (overwrites other redshift choices) if logarithmic set logz=True
-         zstart:    Lowest redshift to consider (default is 0.)
-         zend:      Highest redshift to consider (default is 100.)
-         deltaz:    How fine the grid should be in redshift (default is 0.01)
-
-         mgrid:     User provided halo mass spacings (overwrites other mass choices) if logarithmic set logm=True
-         mstart:    Lowest halo mass to consider (default is 1. Msol)
-         mend:      Highest halo mass to consider (default is 1e14 Msol)
-         deltam:    How fine the grid should be in mass (default is 0.1)
-
-   KEYWORD PARAMETERS:
-         logm:      Whether mass is in logarithmic units (default True, i.e. logarithmic spacing)
-
-         com:    Calculate the NFW properties for haloes in this cosmology (i.e. the c-M relation as a function of z). Set for default True
-         mah:    Creat the mass accretion histories for haloes of a given mass, M0, to redshift, z0. Set for default False (it's more limited than com)
-
-   OUTPUTS:
-          A numpy pickle with com or mah output to disk if filename passed, or (future version HDF5 output)
-          that you can access arrays from by using: 
-          filein = np.load(filename)
-          filein['c']
-          Ultimately will be used to create look up file that c, M, Mdot, z can be requested on per halo basis
-  
-   RESTRICTIONS:
-
-          
-   PROCEDURE:
-  
-  
-   EXAMPLE:
-      
-   MODIFICATION HISTORY (by Alan Duffy):
-          8/01/15 Function created
-          Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
-  """
-
-  ## Establish redshift range
-  if zgrid == None:
-    zgrid = np.arange(zstart,zend,deltaz)
-
-  ## Establish mass range
-  if mgrid == None:
-    mgrid = np.arange(mstart,mend,deltam)
-    if logm:
-      mgrid = 10.**(mgrid)
-
-  if com:
-    dataset = np.zeros( (len(mgrid),len(zgrid)), dtype=[('dMdt',float),('Mz',float),('c',float),('sig0',float),('nu',float),('zf',float)] )
-  elif mah:
-    dataset = np.zeros( (len(mgrid),len(zgrid)), dtype=[('dMdt',float),('Mz',float)] )
-
-  if com:
-    for mind, mloop in enumerate(mgrid):
-      print "Solve for Mhalo = ",mloop," Msol, which is mass step ",mind," of ",len(mgrid)
-      z_array, dMdt_array, Mz_array, c, sig0, nu, zf = run(cosmology, z=zgrid, z0=min(zgrid), M0=mloop, com=com, mah=mah)  
-      dataset[mind,:]['dMdt'] = dMdt_array
-      dataset[mind,:]['Mz'] = Mz_array
-      dataset[mind,:]['c'] = c
-      dataset[mind,:]['sig0'] = sig0
-      dataset[mind,:]['nu'] = nu
-      dataset[mind,:]['zf'] = zf
-  elif mah:
-    for mind, mloop in enumerate(mgrid):
-      print "Solve for Mhalo = ",mloop," Msol, which is mass step ",mind," of ",len(mgrid)
-      z_array, dMdt_array, Mz_array = run(cosmology, z=zgrid, z0=min(zgrid), M0=mloop, com=com, mah=mah)  
-      dataset[mind,:]['dMdt'] = dMdt_array
-      dataset[mind,:]['Mz'] = Mz_array
-
-  if filename:
-    output = filename+'_'
-  else:
-    output = ''
-
-  if com:
-    output += cosmology+'_COM'+'.pkl.bz2'
-  elif mah:
-    output += cosmology+'_MAH'+'.pkl.bz2'
-
-  print "Output to ",output
-#  np.savez(output, dataset, M=mgrid, z=zgrid)
-#  with open(output,'wb') as fout:
-  with bz2.BZ2File(output,'w') as fout:
-    pkl.dump(dict(dataset=dataset, Mhalo=mgrid, Redshift=zgrid), fout)
-  
-  return "Done"
-
-def run(cosmology, z0=0., M0=1e12, z=[0.,1.,2.,3.,4.,5.], com=True, mah=False):
-  """ run commah on a given halo mass 'M0' at a redshift 'z0' at higher redshifts 'z' """
+def run(cosmology, zi=0., Mi=1e12, z=None, val=None, com=True, mah=True, verbose=None):
+  """ run commah on a given halo mass 'Mi' at a redshift 'zi' solving for higher redshifts 'z' """
 
   """
   +
@@ -726,9 +628,8 @@ def run(cosmology, z0=0., M0=1e12, z=[0.,1.,2.,3.,4.,5.], com=True, mah=False):
          run
   
    PURPOSE:
-         This function determines whether a user wants the mass accretion histories / NFW profiles,
-         loads the correct cosmology, and creates lookup tables if required. It will then ensure 
-         outputs are in the correct directory
+         Take user requested cosmology along with halo mass at a given redshift as well as desired output
+         redshifts if provided to output concentration / sig / nu / formation redshift
   
    CATEGORY:
          Function
@@ -736,10 +637,11 @@ def run(cosmology, z0=0., M0=1e12, z=[0.,1.,2.,3.,4.,5.], com=True, mah=False):
    REQUIREMENTS:
           import numpy
           import cosmolopy
+          import scipy
 
    CALLING SEQUENCE:
       from commah import *
-      Result = run(cosmology [z0=0., M0=1e12, mah=True, com=True] )
+      Result = run(cosmology [ zi=0., Mi=1e12, z=[0.,1.,2.] ] )
   
    INPUTS:
          cosmology: Either a name for a cosmology, default WMAP7 (aka DRAGONS), such as DRAGONS, WMAP1, WMAP3, WMAP5, WMAP7, WMAP9, Planck
@@ -748,14 +650,17 @@ def run(cosmology, z0=0., M0=1e12, z=[0.,1.,2.,3.,4.,5.], com=True, mah=False):
                 'omega_n_0': 0.0, 'sigma_8': 0.816, 't_0': 13.76, 'tau': 0.088,'z_reion': 10.6}
 
    OPTIONAL INPUTS:
-         M0:     The mass of the halo that the user wants the accretion history for (can be array)
-         z0:     The redshift of the halo when it has mass M0 (can be array)
-         z:      Outputs at redshift 'z' (can be array)
+         Mi:     The mass of the halo that the user wants the accretion history for (can be array)
+         zi:     The redshift of the halo when it has mass Mi (can be array) Note that zi \le z always
+         z:      Outputs at redshift 'z' (can be array) if left as None then z=zi
+         val:    If specified only output the value requested (concentration (c), mass variance (sig), 
+                 fluctuation height (nu), formation redshift (zf), accretion rate (dM/dt) [Msol / yr] 
+                 and halo mass at redshift 'z' (Mz))
+         verbose: Whether to output comments, set to None by default
 
-   KEYWORD PARAMETERS (set to True)
-         com:    Calculate the NFW properties for haloes in this cosmology (i.e. the c-M relation as a function of z) com requires mah
-         mah:    Creat the mass accretion histories for haloes of a given mass, M0, to redshift, z0
-
+   KEYWORD PARAMETERS (set to True):
+         com:   If set to True return concentration (c), mass variance (sig), fluctuation height (nu) and formation redshift (zf)
+         mah:   If set to True, return accretion rate (dM/dt) [Msol / yr] and halo mass at redshift 'z' (Mz) [Msol] for object mass Mi at redshift zi
    OUTPUTS:
           A numpy pickle with com or mah output to disk if filename passed, or (future version HDF5 output)
           that you can access arrays from by using: 
@@ -770,9 +675,9 @@ def run(cosmology, z0=0., M0=1e12, z=[0.,1.,2.,3.,4.,5.], com=True, mah=False):
   
   
    EXAMPLE:
+        import commah
       
    MODIFICATION HISTORY (by Alan Duffy):
-          23/12/14 Added pickle interogation to the file
           28/10/14 IDL version by Camila Correa translated to Python by Alan Duffy
           Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
   """
@@ -788,98 +693,56 @@ def run(cosmology, z0=0., M0=1e12, z=[0.,1.,2.,3.,4.,5.], com=True, mah=False):
     if mah == False:
       print "User has to choose com=True and / or mah=True "
 
+  ## Convert arrays / lists to np.array and inflate redshift / mass axis to match each other
+  zi, Mi, z, lenz, lenm, lenzout = checkinput(zi,Mi,z=z,verbose=verbose)
+  ## At this point we will have lenm objects to iterate over, finding lenzout solutions
+
   ## Get the cosmological parameters for the given cosmology
   cosmo = getcosmo(cosmology)
 
-  if mah:
-    z_array, dMdt, Mz = MAH(z, z0, M0, **cosmo) 
-    if com:
-      ## Loop over the COM routine in redshift (and hence diminishing mass at that z) for the initial mass M0 at z0
-      c, sig0, nu, zf = COMLOOP(z_array, Mz, a_tilde=None, b_tilde=None, **cosmo)
-      return z_array, dMdt, Mz, c, sig0, nu, zf
-    else:
-      return z_array, dMdt, Mz
-  elif com:
-    z_array, dMdt, Mz = MAH(z, z0, M0, **cosmo)  
-    c, sig0, nu, zf = COMLOOP(z_array, Mz, a_tilde=None, b_tilde=None, **cosmo)
-  
-    return z_array, dMdt, Mz, c, sig0, nu, zf
-
-def loadval(cosmology=None, filename=None, z=None, M=1e12, val='c'):
-  """ Shortcut to interrogate commah datasets for user requested masses and redshifts """
-
-
-  """
-  +
-   NAME:
-         loadval
-  
-   PURPOSE:
-         This function interpolates over commah pickle and returns concentration and / or accretion rate 
-  
-   CATEGORY:
-         Function
-  
-   REQUIREMENTS:
-          import numpy
-          import cosmolopy
-
-   CALLING SEQUENCE:
-          from commah import *
-          c = loadval(filename='Full_WMAP5_COM.pkl', z=[0], M=[1e10,1e11], val='c')
-          or
-          c = loadval(cosmology='WMAP5', z=[0], M=[1e10,1e11], val='c')
-  
-   INPUTS:
-          cosmology: A named cosmology, default WMAP7 (aka DRAGONS), such as DRAGONS, WMAP1, WMAP3, WMAP5, WMAP7, WMAP9, Planck
-                     that has a pickle file Full_WMAP7_COM.pkl for example
-          filename: Pass an existing pickle file by hand
-   OPTIONAL INPUTS:
-          z: Array of redshifts for desired outputs
-          M: Array of halo mass for desired outputs
-          val:  Provide a str value to interrogate pickle file i.e. 'dMdt' for acc rate, 'c' for concentration, 'Mz' for mass at redshift 'z',
-                'sig0' for sigma fluctuation, 'nu' for dimensionless rareness of fluctuation or 'zf' for formation redshift
-   KEYWORD PARAMETERS: 
-
-   OUTPUTS:
-          An array of value specified by 'val' for the given redshift and mass range
-  
-   RESTRICTIONS:
-          
-   PROCEDURE:
-  
-   EXAMPLE:
-      
-   MODIFICATION HISTORY (by Alan Duffy):
-          12/01/15 Created example plots
-          Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
-  """
-
-
-  ## Load the file
-  if filename and cosmology:    
-    filein = filename+cosmology+'_COM.pkl.bz2'
-  elif cosmology:
-    filein = 'Full_'+cosmology+'_COM.pkl.bz2'
+  if val:
+    valname = val
   else:
-    filein = filename
+    if mah and com:
+      valname = ('z', 'dMdt', 'Mz', 'c', 'sig', 'nu', 'zf')
 
-  print "Opening ",filein
-#  with open(filein, 'rb') as fin:
-  with bz2.BZ2File(filein, 'r') as fin:    
-      data = pkl.load(fin)
-      dataset = data.get("dataset",[])
-      Mhalo = data.get("Mhalo",[])
-      Redshift = data.get("Redshift",[])
-
-  val_list = ('c','dMdt','Mz','sig0','nu', 'zf') 
-  if val in val_list:
-    ## Interpolate the output from commah
-    interp = RectBivariateSpline(Mhalo, Redshift, dataset[val])
-    if z == None:
-      return interp(M,Redshift)
-    else:
-      return interp(M,z)      
+  if mah and com:
+    if verbose:
+      print "Output requested is zi, Mi, z, dMdt, Mz, c, sig, nu, zf"
+    dataset = np.zeros( (lenm,lenzout), dtype=[('zi',float),('Mi',float),('z',float),('dMdt',float),('Mz',float),('c',float),('sig',float),('nu',float),('zf',float)] )
+  elif mah:
+    if verbose:
+      print "Output requested is zi, Mi, z, dMdt, Mz"
+    dataset = np.zeros( (lenm,lenzout), dtype=[('zi',float),('Mi',float),('z',float),('dMdt',float),('Mz',float)] )
   else:
-    print "You requested val= ",val, " the choices are ",val_list
-    return -1
+    if verbose:    
+      print "Output requested is zi, Mi, c, sig, nu, zf"
+    dataset = np.zeros( (lenm,lenzout), dtype=[('zi',float),('Mi',float),('z',float),('c',float),('sig',float),('nu',float),('zf',float)] )
+
+  i_ind = 0
+  for zval, Mval in itertools.izip(zi, Mi):    
+    ## Now run the script for each zval and Mval combination
+    if verbose:
+      print "Output Halo of Mass Mi=",Mval," at zi=",zval    
+    if mah and com:
+      ## For a given halo mass Mi at redshift zi need to know the output redshifts 'z'
+      ## Check that all requested redshifts are greater than the input redshift
+      ztemp = np.array(z[z >= zval])
+      if ztemp.size > 0:  
+        dMdt, Mz = MAH(ztemp, zval, Mval, **cosmo) 
+        ## Return accretion rates and halo mass progenitors at redshifts 'z' for object of mass Mi at zi
+        c, sig, nu, zf = COM(ztemp, Mz, **cosmo)
+        for j_ind, j_val in enumerate(ztemp):
+          dataset[i_ind,j_ind] = zval, Mval, ztemp[j_ind], dMdt[j_ind], Mz[j_ind], c[j_ind], sig[j_ind], nu[j_ind], zf[j_ind]
+    elif mah:
+      ## Check that all requested redshifts are greater than the input redshift
+      ztemp = np.array(z[z >= zval])
+      if ztemp.size > 0:  
+        for j_ind, j_val in enumerate(ztemp):
+          dataset[i_ind,j_ind] = zval, Mval, ztemp[j_ind], dMdt[j_ind], Mz[j_ind]
+    else:
+      ## For any halo mass Mi at redshift zi solve for c, sig, nu and zf
+      dataset[i_ind,:] = zval, Mval, zval, COM(zval, Mval, **cosmo) 
+    i_ind += 1
+
+  return dataset

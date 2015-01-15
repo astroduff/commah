@@ -9,44 +9,60 @@ def runcommand(cosmology='WMAP5'):
   """ Example interface commands """
 
   ## Return the WMAP5 cosmology concentration predicted for z=0 range of masses
-  M = [1e8, 1e9, 1e10]
-  z = 0.
-  print "Concentrations for haloes of mass ", M, " at z=",z
-  print loadval(cosmology = cosmology, z=z, M=M, val = 'c')
+  Mi = [1e8, 1e9, 1e10]
+  zi = 0.
+  print "Concentrations for haloes of mass ", Mi, " at z=",zi
+  output = run(cosmology = cosmology, zi=zi, Mi=Mi)
+  print output['c'].flatten()
 
   ## Return the WMAP5 cosmology concentration predicted for MW mass (2e12 Msol) across redshift
-  M = 2e12
+  Mi = 2e12
   z = [0.,0.5,1.,1.5,2.,2.5]
-  print "Concentrations for haloes of mass ", M, " at z=",z
-  print loadval(cosmology = cosmology, z=z, M=M, val = 'c')
+  output = run(cosmology = cosmology, zi=0., Mi=Mi, z=z)
+  for zval in z:  
+    print "M(z=0)=",Mi," has c(z=",zval,")= ",output[output['z']==zval]['c'].flatten()
+
+  ## Return the WMAP5 cosmology concentration predicted for MW mass (2e12 Msol) across redshift
+  Mi = 2e12
+  zi = [0.,0.5,1.,1.5,2.,2.5]
+  output = run(cosmology = cosmology, zi=zi, Mi=Mi)
+  for zval in zi:
+    print "M(z=",zval,")=",Mi," has concentration ",output[(output['zi']==zval) & (output['z']==zval)]['c'].flatten()
 
   ## Return the WMAP5 cosmology concentration and rarity of high-z cluster
-  M = 2e14
-  z = 6.
-  print "Concentrations for haloes of mass ", M, " at z=",z
-  print loadval(cosmology = cosmology, z=z, M=M, val = 'c')
-  print "Fluctuation sigma of haloes of mass ", M, " at z=",z
-  print loadval(cosmology = cosmology, z=z, M=M, val = 'sig0')
-  print "Rarity for haloes of mass ", M, " at z=",z
-  print loadval(cosmology = cosmology, z=z, M=M, val = 'nu')    
+  Mi = 2e14
+  zi = 6.
+  output = run(cosmology = cosmology, zi=zi, Mi=Mi)
+  print "Concentrations for haloes of mass ", Mi, " at z=",zi
+  print output['c'].flatten()
+  print "Mass variance sigma of haloes of mass ", Mi, " at z=",zi
+  print output['sig'].flatten()
+  print "Fluctuation parameter for haloes of mass ", Mi, " at z=",zi
+  print output['nu'].flatten()
 
   ## Return the WMAP5 cosmology accretion rate prediction for haloes at range of redshift and mass
-  M = [1e8, 1e9, 1e10]
+  Mi = [1e8, 1e9, 1e10]
+  zi = [0.]
   z = [0.,0.5,1.,1.5,2.,2.5]
-  print "Concentrations for haloes of mass ", M, " at z=",z
-  print loadval(cosmology = cosmology, z=z, M=M, val = 'dMdt')
+  output = run(cosmology = cosmology, zi=zi, Mi=Mi, z=z)    
+  for Mval in Mi:  
+    print "dM/dt for halo of mass ", Mval, " at z=",zi," across redshift ",z, " is: "
+    print output[output['Mi']==Mval]['dMdt'].flatten()
 
   ## Return the WMAP5 cosmology Halo Mass History for haloes with M(z=0) = 1e8
   M = [1e8]
   z = [0.,0.5,1.,1.5,2.,2.5]
   print "Halo Mass History for z=0 mass of ", M, " across z=",z
-  print loadval(cosmology = cosmology, z=z, M=M, val = 'Mz')
+  output = run(cosmology = cosmology, zi=0., Mi=M, z=z)
+  print output['Mz'].flatten()
 
   ## Return the WMAP5 cosmology formation redshifts for haloes at range of redshift and mass
   M = [1e8, 1e9, 1e10]
   z = [0.]
   print "Formation Redshifts for haloes of mass ", M, " at z=",z
-  print loadval(cosmology = cosmology, z=z, M=M, val = 'zf')
+  output = run(cosmology = cosmology, zi=0., Mi=M, z=z)
+  for Mval in M:
+    print output[output['Mi']==Mval]['zf'].flatten()
 
   return "Done"
 
