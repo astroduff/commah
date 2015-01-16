@@ -97,8 +97,8 @@ def checkinput(zi,Mi,z=None, verbose=None):
 def getcosmo(cosmology):
   """ Find the cosmological parameters for user provided named cosmology using cosmology.py list """
 
-  defaultcosmologies = {'dragons' : cg.DRAGONS(), 'wmap1' : cg.WMAP1_2dF_mean(), 
-  'wmap3' : cg.WMAP3_ML(), 'wmap5' : cg.WMAP5_ML(), 'wmap7' : cg.WMAP7_ML(), 
+  defaultcosmologies = {'dragons' : cg.DRAGONS(), 'wmap1' : cg.WMAP1_Mill(), 
+  'wmap3' : cg.WMAP3_ML(), 'wmap5' : cg.WMAP5_mean(), 'wmap7' : cg.WMAP7_ML(), 
   'wmap9' : cg.WMAP9_ML(), 'planck' : cg.Planck_2013()}
   if cosmology.lower() in defaultcosmologies.keys():
     cosmo = defaultcosmologies[cosmology.lower()]
@@ -204,8 +204,11 @@ def getAscaling(cosmology, newcosmo=False):
   """
 
   if newcosmo == False:
-    defaultcosmologies = {'dragons' : 850., 'wmap1' : 787.01, 'wmap3' : 850.37, 
-    'wmap5' : 903.75, 'wmap7' : 850., 'wmap9' : 820.37, 'planck' : 798.82} # Values from Correa 14a
+    defaultcosmologies = {'dragons' : 887., 'wmap1' : 853., 'wmap3' : 850., 
+    'wmap5' : 887., 'wmap7' : 887., 'wmap9' : 950., 'planck' : 880.} # Values from Correa 15c
+
+#    defaultcosmologies = {'dragons' : 850., 'wmap1' : 787.01, 'wmap3' : 850.37, 
+#    'wmap5' : 903.75, 'wmap7' : 850., 'wmap9' : 820.37, 'planck' : 798.82} # Values from Correa 14a
 
     if cosmology.lower() in defaultcosmologies.keys():
       A_scaling = defaultcosmologies[cosmology.lower()]    

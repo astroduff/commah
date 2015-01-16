@@ -87,7 +87,44 @@ def WMAP1_2dF_mean(flat=False, extras=True):
     return cosmo
 
 
-def WMAP3_ML(flat=False, extras=True):
+def WMAP1_Mill(flat=False, extras=True):
+    """WMAP1 Millennium cosmology
+
+    Parameters
+    ----------
+    
+    flat: boolean
+    
+      If True, sets omega_lambda_0 = 1 - omega_M_0 to ensure omega_k_0
+      = 0 exactly. Also sets omega_k_0 = 0 explicitly.
+
+    extras: boolean
+
+      If True, sets neutrino number N_nu = 0, neutrino density
+      omega_n_0 = 0.0, Helium mass fraction Y_He = 0.24.
+
+      """
+    omega_c_0 = 0.206
+    omega_b_0 = 0.044
+    cosmo = {'omega_b_0' : omega_b_0,
+             'omega_M_0' : omega_b_0 + omega_c_0,
+             'omega_lambda_0' : 0.75,
+             'h' : 0.73,
+             'n' : 1.0,
+             'sigma_8' : 0.9,
+             'tau' : 0.148,
+             'z_reion' : 17.,
+             't_0' : 13.7,
+             }
+    if flat:
+        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_k_0'] = 0.0
+    if extras:
+        add_extras(cosmo)
+    return cosmo
+
+
+def WMAP3_mean(flat=False, extras=True):
     """WMAP3 Maximum Liklihood from Spergel et al. (2007) ApJS 170 377-408
     (arXiv:astro-ph/0603449)
 
@@ -111,6 +148,45 @@ def WMAP3_ML(flat=False, extras=True):
              'omega_M_0' : omega_b_0 + omega_c_0,
              'omega_lambda_0' : 0.763,
              'h' : 0.73,
+             'n' : 0.954,
+             'sigma_8' : 0.756,
+             'tau' : 0.091,
+             'z_reion' : 11.3,
+             't_0' : 13.73,
+             }
+    if flat:
+        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_k_0'] = 0.0
+    if extras:
+        add_extras(cosmo)
+    return cosmo
+
+
+
+def WMAP3_ML(flat=False, extras=True):
+    """WMAP3 Maximum Liklihood from Spergel et al. (2007) ApJS 170 377-408
+    (arXiv:astro-ph/0603449)
+
+    Parameters
+    ----------
+    
+    flat: boolean
+    
+      If True, sets omega_lambda_0 = 1 - omega_M_0 to ensure omega_k_0
+      = 0 exactly. Also sets omega_k_0 = 0 explicitly.
+
+    extras: boolean
+
+      If True, sets neutrino number N_nu = 0, neutrino density
+      omega_n_0 = 0.0, Helium mass fraction Y_He = 0.24.
+
+      """
+    omega_c_0 = 0.1959
+    omega_b_0 = 0.0411
+    cosmo = {'omega_b_0' : omega_b_0,
+             'omega_M_0' : omega_b_0 + omega_c_0, 
+             'omega_lambda_0' : 0.763,
+             'h' : 0.732,
              'n' : 0.954,
              'sigma_8' : 0.756,
              'tau' : 0.091,
