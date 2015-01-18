@@ -7,6 +7,7 @@ __author__ = 'Camila Correa and Alan Duffy'
 __email__ = 'mail@alanrduffy.com'
 __version__ = '0.2.0'
 
+from astropy.io import ascii
 from scipy.integrate import quad
 from scipy.optimize import brentq
 from scipy.interpolate import RectBivariateSpline
@@ -17,7 +18,7 @@ import cosmology_list as cg
 
 import itertools
 
-def checkinput(zi,Mi,z=None, verbose=None):
+def checkinput(zi,Mi,z=False, verbose=None):
   """ Ensure user input be it scalar, array or numpy array don't break the code """
 
   ## How many halo redshifts provided?
@@ -39,21 +40,6 @@ def checkinput(zi,Mi,z=None, verbose=None):
   else:
     lenm = 1
     Mi = np.array([Mi]) ## Ensure itertools can work
-
-  ## How many redshifts to output?
-  if z == None:
-  ## Just output at the input redshifts, in which case Mz = Mi for example
-    lenzout = lenz
-    z = zi
-  else:
-    if hasattr(z, "__len__"):
-      lenzout = 0
-      for test in z:
-        lenzout += 1  
-      z = np.array(z)        
-    else:
-      lenzout = 1
-      z = np.array([z]) ## Ensure itertools can work
 
   ## Check the input sizes for zi and Mi make sense, if not then exit unless 
   ## one axis is length one, in which case replicate values to the size of the other
@@ -92,6 +78,32 @@ def checkinput(zi,Mi,z=None, verbose=None):
     if hasattr(Mi, "__len__") == False:
       Mi = np.array(Mi)
 
+  ## Complex test for size / type of incoming array, just in case numpy / list given
+  try:
+    z.size
+  except Exception, e:
+    if not z:
+    ## Didn't pass anything, set zi = z
+     lenzout = 1   
+    else:
+    ## Passed something, not a numpy array, probably list
+      if hasattr(z, "__len__"):
+        lenzout = 0
+        for test in z:
+          lenzout += 1  
+        z = np.array(z)        
+  else:
+    ## Passed an array, what size is it?
+    if hasattr(z, "__len__"):
+      lenzout = 0
+      for test in z:
+        lenzout += 1  
+      z = np.array(z)      
+    else:
+    ## Just one entry, force as array
+      lenzout = 1
+      z = np.array([z]) ## Ensure itertools can work
+
   return zi, Mi, z, lenz, lenm, lenzout
 
 def getcosmo(cosmology):
@@ -100,23 +112,62 @@ def getcosmo(cosmology):
   defaultcosmologies = {'dragons' : cg.DRAGONS(), 'wmap1' : cg.WMAP1_Mill(), 
   'wmap3' : cg.WMAP3_ML(), 'wmap5' : cg.WMAP5_mean(), 'wmap7' : cg.WMAP7_ML(), 
   'wmap9' : cg.WMAP9_ML(), 'planck' : cg.Planck_2013()}
-  if cosmology.lower() in defaultcosmologies.keys():
+  if isinstance(cosmology,dict):
+    ## User providing their own variables
+    cosmo = cosmology
+    if ('a_scaling').lower() not in cosmology.keys():
+      A_scaling = getAscaling(cosmology, newcosmo=True)
+      cosmo.update({'A_scaling':A_scaling})
+
+      ## Add extra variables by hand that cosmolopy requires but that aren't used (set to zero)
+      for paramnames in cg.WMAP5_mean().keys():
+        if paramnames not in cosmology.keys():
+          cosmo.update({paramnames:0.})
+  elif cosmology.lower() in defaultcosmologies.keys():
+    ## Load by name of cosmology instead
     cosmo = defaultcosmologies[cosmology.lower()]
     A_scaling = getAscaling(cosmology.lower())
     cosmo.update({'A_scaling':A_scaling})
-  elif isinstance(cosmology,dict):
-    cosmo = cosmology
-    if ('a_scaling').lower() not in cosmology.keys():
-      ## Just assume WMAP5
-      A_scaling = getAscaling(cosmology, newcosmo=True)
   else:
     print "You haven't passed a dict of cosmological parameters OR a recognised cosmology, you gave ",cosmology
   cosmo = cp.distance.set_omega_k_0(cosmo) ## No idea why this has to be done by hand but should be O_k = 0
+
   ## Use the cosmology as **cosmo passed to cosmolopy routines
   return cosmo
 
+def getcosmoheader(cosmo):
+  """ Output the cosmology to a string for writing to file """
+
+  cosmoheader = "# Cosmology (flat) Om:"+"{0:.3f}".format( cosmo['omega_M_0'] )+ \
+    ", Ol:"+"{0:.3f}".format( cosmo['omega_lambda_0'] )+", h:"+"{0:.2f}".format( cosmo['h'] )+ \
+    ", sigma8:"+"{0:.3f}".format( cosmo['sigma_8'] )+", ns:"+"{0:.2f}".format( cosmo['n'] )
+
+  return cosmoheader
+
+def cduffy(z0, M0, vir='200crit', relaxed=True):
+  """ Give a halo mass and redshift calculate the NFW concentration based on Duffy 08 Table 1 for relaxed / vir def """
+  if vir == '200crit':
+    if relaxed == True:
+      params = [6.71, -0.091, -0.44]
+    else:
+      params = [5.71, -0.084, -0.47]
+  elif vir == 'tophat':
+    if relaxed == True:
+      params = [9.23, -0.090, -0.69]
+    else:
+      params = [7.85, -0.081, -0.71]
+  elif vir == '200mean':
+    if relaxed == True:
+      params = [11.93, -0.090, -0.99]
+    else:
+      params = [10.14, -0.081, -1.01]
+  else:
+    print "Didn't recognise the halo boundary definition provided ", vir
+
+  return params[0] * ((M0/(2e12/0.72))**params[1]) * ((1.+z0)**params[2])
+  
 def delta_sigma(**cosmo):
-  """ Calculate delta_sigma (propto formation time) to convert best-fit parameter of rho_crit - rho_2 relation between cosmologies, WMAP5 standard (Correa et al 2014a) """
+  """ Perturb best-fit constant of proportionality Ascaling for rho_crit - rho_2 relation for unknown cosmology (Correa et al 2015c) """
 
   """
   +
@@ -203,21 +254,17 @@ def getAscaling(cosmology, newcosmo=False):
           Any issues please contact Alan Duffy on mail@alanrduffy.com or (preferred) twitter @astroduff
   """
 
-  if newcosmo == False:
-    defaultcosmologies = {'dragons' : 887., 'wmap1' : 853., 'wmap3' : 850., 
+  defaultcosmologies = {'dragons' : 887., 'wmap1' : 853., 'wmap3' : 850., 
     'wmap5' : 887., 'wmap7' : 887., 'wmap9' : 950., 'planck' : 880.} # Values from Correa 15c
 
-#    defaultcosmologies = {'dragons' : 850., 'wmap1' : 787.01, 'wmap3' : 850.37, 
-#    'wmap5' : 903.75, 'wmap7' : 850., 'wmap9' : 820.37, 'planck' : 798.82} # Values from Correa 14a
-
+  if newcosmo:
+    # Scale from default WMAP5 cosmology using Correa et al 14b eqn C1 
+    A_scaling = defaultcosmologies['wmap5'] * delta_sigma(**cosmology)
+  else:
     if cosmology.lower() in defaultcosmologies.keys():
       A_scaling = defaultcosmologies[cosmology.lower()]    
     else:
       print "Error, don't recognise your cosmology for A_scaling ", cosmology
-
-  else:
-    # Scale from default WMAP5 cosmology using Correa et al 14b eqn C1 
-    A_scaling = defaultcosmologies['wmap5'] * delta_sigma(**cosmology)
 
   return A_scaling
 
@@ -631,7 +678,7 @@ def COM(z, M, **cosmo):
 
   return c_array, sig_array, nu_array, zf_array
 
-def run(cosmology, zi=0., Mi=1e12, z=None, com=True, mah=True, verbose=None):
+def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True, verbose=None, filename=None):
   """ run commah on a given halo mass 'Mi' at a redshift 'zi' solving for higher redshifts 'z' """
 
   """
@@ -658,8 +705,7 @@ def run(cosmology, zi=0., Mi=1e12, z=None, com=True, mah=True, verbose=None):
    INPUTS:
          cosmology: Either a name for a cosmology, default WMAP7 (aka DRAGONS), such as DRAGONS, WMAP1, WMAP3, WMAP5, WMAP7, WMAP9, Planck
                 or a dictionary like: 
-                {'N_nu': 0,'Y_He': 0.24, 'h': 0.702, 'n': 0.963,'omega_M_0': 0.275,'omega_b_0': 0.0458,'omega_lambda_0': 0.725,
-                'omega_n_0': 0.0, 'sigma_8': 0.816, 't_0': 13.76, 'tau': 0.088,'z_reion': 10.6}
+                {'h': 0.702, 'n': 0.963,'omega_M_0': 0.275,'omega_b_0': 0.0458,'omega_lambda_0': 0.725,'sigma_8': 0.816}
 
    OPTIONAL INPUTS:
          Mi:     The mass of the halo that the user wants the accretion history for (can be array) [Msol]
@@ -732,8 +778,20 @@ def run(cosmology, zi=0., Mi=1e12, z=None, com=True, mah=True, verbose=None):
       print "Output Halo of Mass Mi=",Mval," at zi=",zval    
     if mah and com:
       ## For a given halo mass Mi at redshift zi need to know the output redshifts 'z'
-      ## Check that all requested redshifts are greater than the input redshift
-      ztemp = np.array(z[z >= zval])
+      ## Check that all requested redshifts are greater than the input redshift, except
+      ## if z is None, in which case only solve z at zi, i.e. remove a loop
+      try:
+         z.size
+      except Exception, e:
+        if not z:
+        ## Didn't pass anything, set as redshift
+          ztemp = np.array([zval])
+        else:
+        ## Passed list perhaps?
+          ztemp = np.array(z[z >= zval])
+      else:
+        ztemp = z
+      
       if ztemp.size > 0:  
         dMdt, Mz = MAH(ztemp, zval, Mval, **cosmo) 
         ## Return accretion rates and halo mass progenitors at redshifts 'z' for object of mass Mi at zi
@@ -742,7 +800,10 @@ def run(cosmology, zi=0., Mi=1e12, z=None, com=True, mah=True, verbose=None):
           dataset[i_ind,j_ind] = zval, Mval, ztemp[j_ind], dMdt[j_ind], Mz[j_ind], c[j_ind], sig[j_ind], nu[j_ind], zf[j_ind]
     elif mah:
       ## Check that all requested redshifts are greater than the input redshift
-      ztemp = np.array(z[z >= zval])
+      if not z:
+        ztemp = np.array([zval])
+      else:
+        ztemp = np.array(z[z >= zval])
       if ztemp.size > 0:  
         for j_ind, j_val in enumerate(ztemp):
           dataset[i_ind,j_ind] = zval, Mval, ztemp[j_ind], dMdt[j_ind], Mz[j_ind]
@@ -751,4 +812,23 @@ def run(cosmology, zi=0., Mi=1e12, z=None, com=True, mah=True, verbose=None):
       dataset[i_ind,:] = zval, Mval, zval, COM(zval, Mval, **cosmo) 
     i_ind += 1
 
-  return dataset
+  if filename:
+    ## Output to file, use output style of IDL version
+    print "Output to file ",filename
+    with open(filename, 'wb') as fout:
+      if mah and com:
+        fout.write(getcosmoheader(cosmo)+'\n')
+        fout.write("# z - concentration -   Halo    -   Mass    - Peak    - Accretion"+'\n')
+        fout.write("#   -               -   mass    - Variance  - Height  -   rate"+'\n')
+        fout.write("#   -     (c200)    -   (M200)  - (sigma)   - (nu)    -  (dM200/dt)"+'\n')
+        fout.write("#   -               -   [Msol]  -           -         -  [Msol/yr]"+'\n')
+        ascii.write(dataset[['zi','c','Mi','sig','nu','dMdt']], fout)
+      if mah:
+        fout.write(getcosmoheader(cosmo)+'\n')
+        fout.write("# z -   Halo    - Accretion"+'\n')
+        fout.write("#   -   mass    -   rate"+'\n')
+        fout.write("#   -   (M200)  -  (dM200/dt)"+'\n')
+        fout.write("#   -   [Msol]  -  [Msol/yr]"+'\n')
+        ascii.write(dataset[['zi','Mi','dMdt']], fout)
+  else:
+    return dataset

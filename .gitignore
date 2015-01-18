@@ -1,7 +1,10 @@
+*.DS_Store
 *.png
 *.pyc
 *.npz
 *.pkl
+*.dat
+*.txt
 *.e*
 *.o*
 *~
