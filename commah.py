@@ -7,7 +7,6 @@ __author__ = 'Camila Correa and Alan Duffy'
 __email__ = 'mail@alanrduffy.com'
 __version__ = '0.2.0'
 
-from astropy.io import ascii
 from scipy.integrate import quad
 from scipy.optimize import brentq
 from scipy.interpolate import RectBivariateSpline
@@ -16,7 +15,12 @@ import numpy as np
 import cosmolopy as cp
 import cosmology_list as cg
 
-import itertools
+# This izip routine is from itertools, saves user having to download extra package for this short routine
+def izip(*iterables):
+    # izip('ABCD', 'xy') --> Ax By
+    iterators = map(iter, iterables)
+    while iterators:
+        yield tuple(map(next, iterators))
 
 def checkinput(zi,Mi,z=False, verbose=None):
   """ Ensure user input be it scalar, array or numpy array don't break the code """
@@ -646,7 +650,7 @@ def COM(z, M, **cosmo):
   zf_array = np.empty(np.size(z))
 
   i_ind = 0
-  for zval, Mval in itertools.izip(z, M):
+  for zval, Mval in izip(z, M):
     ## Evaluate the indices at each redshift and mass combination that you want a concentration for, different to MAH which uses
     ## one a_tilde and b_tilde at the starting redshift
     a_tilde, b_tilde = calc_ab(zval, Mval, **cosmo)
@@ -758,77 +762,94 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True, verbose=None, fi
 ##
 #########################################################
 
+  if filename:
+    print "Output to file ",filename
+    fout = open(filename, 'wb')
+
   if mah and com:
     if verbose:
       print "Output requested is zi, Mi, z, dMdt, Mz, c, sig, nu, zf"
+    if filename:
+      if verbose:
+        print "Output to file is z, c, Mz, sig, nu, dMdt"
+      fout.write(getcosmoheader(cosmo)+'\n')
+      fout.write("# Initial z - Initial Halo  - Output z - concentration -   Final Halo    -   Mass    - Peak    - Accretion"+'\n')
+      fout.write("#           -   mass        -          -               -    mass         - Variance  - Height  -   rate"+'\n')
+      fout.write("#           -   (M200)      -          -     (c200)    -   (M200)        - (sigma)   - (nu)    -  (dM200/dt)"+'\n')
+      fout.write("#           -   [Msol]      -          -               -   [Msol]        -           -         -  [Msol/yr]"+'\n')
     dataset = np.zeros( (lenm,lenzout), dtype=[('zi',float),('Mi',float),('z',float),('dMdt',float),('Mz',float),('c',float),('sig',float),('nu',float),('zf',float)] )
   elif mah:
     if verbose:
       print "Output requested is zi, Mi, z, dMdt, Mz"
+    if filename:
+      if verbose:
+        print "Output to file is z, Mz, dMdt"
+      fout.write(getcosmoheader(cosmo)+'\n')
+      fout.write("# Initial z - Initial Halo  - Output z -   Final Halo - Accretion"+'\n')
+      fout.write("#           -   mass        -          -   mass       -   rate"+'\n')
+      fout.write("#           -   (M200)      -          -   (M200)     -  (dM200/dt)"+'\n')
+      fout.write("#           -   [Msol]      -          -   [Msol]     -  [Msol/yr]"+'\n')
     dataset = np.zeros( (lenm,lenzout), dtype=[('zi',float),('Mi',float),('z',float),('dMdt',float),('Mz',float)] )
   else:
     if verbose:    
       print "Output requested is zi, Mi, c, sig, nu, zf"
+    if filename:
+      if verbose:
+        print "Output to file is z, c, Mz, sig, nu"
+      fout.write(getcosmoheader(cosmo)+'\n')
+      fout.write("# z - concentration -   Halo    -   Mass    - Peak"+'\n')
+      fout.write("#   -               -   mass    - Variance  - Height"+'\n')
+      fout.write("#   -     (c200)    -   (M200)  - (sigma)   - (nu)"+'\n')
+      fout.write("#   -               -   [Msol]  -           -     "+'\n')
     dataset = np.zeros( (lenm,lenzout), dtype=[('zi',float),('Mi',float),('z',float),('c',float),('sig',float),('nu',float),('zf',float)] )
 
   i_ind = 0
-  for zval, Mval in itertools.izip(zi, Mi):    
+  for zval, Mval in izip(zi, Mi):    
     ## Now run the script for each zval and Mval combination
     if verbose:
       print "Output Halo of Mass Mi=",Mval," at zi=",zval    
-    if mah and com:
-      ## For a given halo mass Mi at redshift zi need to know the output redshifts 'z'
-      ## Check that all requested redshifts are greater than the input redshift, except
-      ## if z is None, in which case only solve z at zi, i.e. remove a loop
-      try:
-         z.size
-      except Exception, e:
-        if not z:
-        ## Didn't pass anything, set as redshift
-          ztemp = np.array([zval])
-        else:
-        ## Passed list perhaps?
-          ztemp = np.array(z[z >= zval])
-      else:
-        ztemp = z
-      
-      if ztemp.size > 0:  
-        dMdt, Mz = MAH(ztemp, zval, Mval, **cosmo) 
-        ## Return accretion rates and halo mass progenitors at redshifts 'z' for object of mass Mi at zi
-        c, sig, nu, zf = COM(ztemp, Mz, **cosmo)
-        for j_ind, j_val in enumerate(ztemp):
-          dataset[i_ind,j_ind] = zval, Mval, ztemp[j_ind], dMdt[j_ind], Mz[j_ind], c[j_ind], sig[j_ind], nu[j_ind], zf[j_ind]
-    elif mah:
-      ## Check that all requested redshifts are greater than the input redshift
+    ## For a given halo mass Mi at redshift zi need to know the output redshifts 'z'
+    ## Check that all requested redshifts are greater than the input redshift, except
+    ## if z is None, in which case only solve z at zi, i.e. remove a loop
+    try:
+       z.size
+    except Exception, e:
       if not z:
+      ## Didn't pass anything, set as redshift
         ztemp = np.array([zval])
       else:
+      ## Passed list perhaps?
         ztemp = np.array(z[z >= zval])
-      if ztemp.size > 0:  
+    else:
+      ztemp = z
+ 
+    ## Loop over the output redshifts
+    if ztemp.size > 0:  
+      ## Return accretion rates and halo mass progenitors at redshifts 'z' for object of mass Mi at zi
+      dMdt, Mz = MAH(ztemp, zval, Mval, **cosmo) 
+      if com:
+        ## More computational intensive to return concentrations
+        c, sig, nu, zf = COM(ztemp, Mz, **cosmo)
+      if mah and com:
+        ## Save all arrays
+        for j_ind, j_val in enumerate(ztemp):
+          dataset[i_ind,j_ind] = zval, Mval, ztemp[j_ind], dMdt[j_ind], Mz[j_ind], c[j_ind], sig[j_ind], nu[j_ind], zf[j_ind]
+          fout.write(str([zval, Mval, ztemp[j_ind], c[j_ind], Mz[j_ind], sig[j_ind], nu[j_ind], dMdt[j_ind]])+"\n") #zi, Mi, z, c, Mz, sig, nu, dMdt
+      elif mah:
+        ## Save only MAH arrays
         for j_ind, j_val in enumerate(ztemp):
           dataset[i_ind,j_ind] = zval, Mval, ztemp[j_ind], dMdt[j_ind], Mz[j_ind]
-    else:
+          fout.write(str([zval, Mval, ztemp[j_ind], Mz[j_ind], dMdt[j_ind]])+"\n") #zi, Mi, z,Mz,dMdt
+      else:
+        c, sig, nu, zf = COM(zval, Mval, **cosmo) 
       ## For any halo mass Mi at redshift zi solve for c, sig, nu and zf
-      dataset[i_ind,:] = zval, Mval, zval, COM(zval, Mval, **cosmo) 
-    i_ind += 1
+        dataset[i_ind,:] = zval, Mval, zval, c, sig, nu, zf
+        fout.write(str([zval, c, Mval, sig, nu])+"\n") #z,c,Mz,sig,nu
+
+      i_ind += 1
 
   if filename:
-    ## Output to file, use output style of IDL version
-    print "Output to file ",filename
-    with open(filename, 'wb') as fout:
-      if mah and com:
-        fout.write(getcosmoheader(cosmo)+'\n')
-        fout.write("# z - concentration -   Halo    -   Mass    - Peak    - Accretion"+'\n')
-        fout.write("#   -               -   mass    - Variance  - Height  -   rate"+'\n')
-        fout.write("#   -     (c200)    -   (M200)  - (sigma)   - (nu)    -  (dM200/dt)"+'\n')
-        fout.write("#   -               -   [Msol]  -           -         -  [Msol/yr]"+'\n')
-        ascii.write(dataset[['zi','c','Mi','sig','nu','dMdt']], fout)
-      if mah:
-        fout.write(getcosmoheader(cosmo)+'\n')
-        fout.write("# z -   Halo    - Accretion"+'\n')
-        fout.write("#   -   mass    -   rate"+'\n')
-        fout.write("#   -   (M200)  -  (dM200/dt)"+'\n')
-        fout.write("#   -   [Msol]  -  [Msol/yr]"+'\n')
-        ascii.write(dataset[['zi','Mi','dMdt']], fout)
+    fout.close()
+    return dataset        
   else:
     return dataset
