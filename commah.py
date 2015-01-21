@@ -645,9 +645,9 @@ def COM(z, M, **cosmo):
 
   ## Check that z and M are arrays
   if not hasattr(z, "__len__"):
-  	z = np.array([z])
+    z = np.array([z])
   if not hasattr(M, "__len__"):
-  	M = np.array([M])
+    M = np.array([M])
 
   ## Create array
   c_array = np.empty(np.size(z))
@@ -841,17 +841,20 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True, verbose=None, fi
         ## Save all arrays
         for j_ind, j_val in enumerate(ztemp):
           dataset[i_ind,j_ind] = zval, Mval, ztemp[j_ind], dMdt[j_ind], Mz[j_ind], c[j_ind], sig[j_ind], nu[j_ind], zf[j_ind]
-          fout.write("{}, {}, {}, {}, {}, {}, {}, {} \n".format(zval, Mval, ztemp[j_ind], c[j_ind], Mz[j_ind], sig[j_ind], nu[j_ind], dMdt[j_ind]))
+          if filename:
+            fout.write("{}, {}, {}, {}, {}, {}, {}, {} \n".format(zval, Mval, ztemp[j_ind], c[j_ind], Mz[j_ind], sig[j_ind], nu[j_ind], dMdt[j_ind]))
       elif mah:
         ## Save only MAH arrays
         for j_ind, j_val in enumerate(ztemp):
           dataset[i_ind,j_ind] = zval, Mval, ztemp[j_ind], dMdt[j_ind], Mz[j_ind]
-          fout.write("{}, {}, {}, {}, {} \n".format(zval, Mval, ztemp[j_ind], Mz[j_ind], dMdt[j_ind]))
+          if filename:
+            fout.write("{}, {}, {}, {}, {} \n".format(zval, Mval, ztemp[j_ind], Mz[j_ind], dMdt[j_ind]))
       else:
         c, sig, nu, zf = COM(zval, Mval, **cosmo) 
       ## For any halo mass Mi at redshift zi solve for c, sig, nu and zf
         dataset[i_ind,:] = zval, Mval, zval, c, sig, nu, zf
-        fout.write("{}, {}, {}, {}, {} \n".format(zval, c, Mval, sig, nu))
+        if filename:
+          fout.write("{}, {}, {}, {}, {} \n".format(zval, c, Mval, sig, nu))
 
       i_ind += 1
 
