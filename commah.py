@@ -577,10 +577,10 @@ def acc_rate(z, zi, Mi, **cosmo):
   a_tilde, b_tilde = calc_ab(zi, Mi, **cosmo)
 
   ## Halo mass at z, Msol Eqn 8 in Correa et al. 2015c
-  Mz = Mi * (1.+z-zi)**a_tilde * np.exp(b_tilde *(z-zi))
+  Mz = Mi * ((1.+z-zi)**a_tilde) * (np.exp(b_tilde*(z-zi)))
 
   ## Accretion rate at z, Msol yr^-1 in Eqn 11 from Correa et al. 2015c
-  dMdt = 71.588*(cosmo['h']/0.7)*(-a_tilde - b_tilde*(1.+z-zi))*(Mz/1e12)*np.sqrt(cosmo['omega_M_0']*(1.+z-zi)**3.+cosmo['omega_lambda_0'])
+  dMdt = 71.6*(Mz/1e12)*(cosmo['h']/0.7)*(-a_tilde / (1.+z-zi) -b_tilde)*(1.+z)*np.sqrt(cosmo['omega_M_0']*(1.+z-zi)**3.+cosmo['omega_lambda_0'])
 
   return dMdt, Mz
 
