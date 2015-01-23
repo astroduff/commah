@@ -230,6 +230,7 @@ def plotcommand(cosmology = 'WMAP5', plotname=None):
     ## Plot each line in turn with different colour   
     ax.plot(np.log10(xarray+1.), np.log10(yarray), label=linelabel+"{0:.1f}".format( np.log10(zval) ), color=colors[zind],)
 
+    ## Plot the semi-analytic approximate formula from Correa et al 2015b
     semianalytic_approx = 71.6 * (zval / 1e12) * (cosmo['h']/0.7) * (-0.24 + 0.75 * (xarray + 1.)) * np.sqrt(cosmo['omega_M_0']*(xarray+1.)**3.+cosmo['omega_lambda_0'])
     ax.plot(np.log10(xarray+1.), np.log10(semianalytic_approx), color = 'black')
 
@@ -250,7 +251,7 @@ def plotcommand(cosmology = 'WMAP5', plotname=None):
 
 ## Plot the dMdt-M relation as a function of redshift
   xval = 'M'
-  xarray = 10.**(np.arange(10.,15.,0.2))
+  xarray = 10.**(np.arange(10.,15.,0.5))
   yval = 'dMdt'
 
   ## Specify the redshift range
@@ -297,7 +298,7 @@ def plotcommand(cosmology = 'WMAP5', plotname=None):
 
 ## Plot the (dM/M)dt-M relation as a function of redshift
   xval = 'M'
-  xarray = 10.**(np.arange(10.,15.,0.2))
+  xarray = 10.**(np.arange(10.,15.,0.5))
   yval = 'dMdt'
 
   ## Specify the redshift range
@@ -336,8 +337,8 @@ def plotcommand(cosmology = 'WMAP5', plotname=None):
 
   if plotname:
     fig.tight_layout(pad=0.2)
-    print "Plotting to ",plotname+"_MAH_M_relation.png"
-    fig.savefig(plotname+"_MAH_M_relation.png", dpi=fig.dpi*5) 
+    print "Plotting to ",plotname+"_specificMAH_M_relation.png"
+    fig.savefig(plotname+"_specificMAH_M_relation.png", dpi=fig.dpi*5) 
   else:
     plt.show()
 
@@ -348,7 +349,7 @@ def plotcommand(cosmology = 'WMAP5', plotname=None):
   yval = 'Mz'
 
   ## Specify the mass range
-  zarray = 10.**np.arange(10.,15.,0.2)
+  zarray = 10.**np.arange(10.,15.,0.5)
 
   xtitle = r"Redshift"
   ytitle = r"M(z) (M$_{sol}$)"
@@ -394,7 +395,7 @@ def plotcommand(cosmology = 'WMAP5', plotname=None):
   yval = 'Mz'
 
   ## Specify the mass range
-  zarray = 10.**np.arange(10.,15.,2.)
+  zarray = 10.**np.arange(10.,15.,0.5)
 
   xtitle = r"Redshift"
   ytitle = r"log$_{10}$ M(z)/M$_{0}$"
@@ -414,7 +415,7 @@ def plotcommand(cosmology = 'WMAP5', plotname=None):
     yarray = output[yval].flatten()
 
     ## Plot each line in turn with different colour   
-    ax.plot(xarray, np.log10(yarray/10.**zval), label=linelabel+"{0:.1f}".format( np.log10(zval) ), color=colors[zind],)
+    ax.plot(xarray, np.log10(yarray/zval), label=linelabel+"{0:.1f}".format( np.log10(zval) ), color=colors[zind],)
 
   leg = ax.legend(loc=3)
   leg.get_frame().set_alpha(0) # this will make the box totally transparent
