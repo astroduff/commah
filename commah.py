@@ -17,13 +17,15 @@ import cosmology_list as cg
 
 # This izip routine is from itertools, saves user having to download extra package for this short routine
 def izip(*iterables):
+  """ Iterate through multiple lists or arrays of equal size """
+
     # izip('ABCD', 'xy') --> Ax By
     iterators = map(iter, iterables)
     while iterators:
         yield tuple(map(next, iterators))
 
 def checkinput(zi,Mi,z=False, verbose=None):
-  """ Ensure user input be it scalar, array or numpy array don't break the code """
+  """ Test user input is scalar, array or numpy array and convert to numpy array """
 
   ## How many halo redshifts provided?
   if hasattr(zi, "__len__"):
@@ -111,7 +113,7 @@ def checkinput(zi,Mi,z=False, verbose=None):
   return zi, Mi, z, lenz, lenm, lenzout
 
 def getcosmo(cosmology):
-  """ Find the cosmological parameters for user provided named cosmology using cosmology.py list """
+  """ Find cosmological parameters for a named cosmology in cosmology.py list """
 
   defaultcosmologies = {'dragons' : cg.DRAGONS(), 'wmap1' : cg.WMAP1_Mill(), 
   'wmap3' : cg.WMAP3_ML(), 'wmap5' : cg.WMAP5_mean(), 'wmap7' : cg.WMAP7_ML(), 
@@ -149,7 +151,7 @@ def getcosmoheader(cosmo):
   return cosmoheader
 
 def cduffy(z0, M0, vir='200crit', relaxed=True):
-  """ Give a halo mass and redshift calculate the NFW concentration based on Duffy 08 Table 1 for relaxed / vir def """
+  """ Return NFW concentration from Duffy 08 Table 1 for a halo mass and redshift """
   if vir == '200crit':
     if relaxed == True:
       params = [6.71, -0.091, -0.44]
@@ -273,7 +275,7 @@ def getAscaling(cosmology, newcosmo=False):
   return A_scaling
 
 def int_growth(z, **cosmo):
-  """ Returns the integral of the linear growth factor from z=200 to z=z """
+  """ Returns integral of the linear growth factor from z=200 to z=z """
   zmax = 200.
 
   if hasattr(z, "__len__"):
@@ -287,7 +289,7 @@ def int_growth(z, **cosmo):
   return y
 
 def deriv_growth(z, **cosmo):
-  """ Returns the derivative of the linear growth factor for redshift and cosmo (0m, 0l) """
+  """ Returns derivative of the linear growth factor for redshift and cosmo (0m, 0l) """
 
   """
   +
@@ -333,7 +335,7 @@ def deriv_growth(z, **cosmo):
   return growthfactor(z,norm=True, **cosmo)*(inv_h**2.)*1.5*cosmo['omega_M_0']*(1.+z)**2. - fz*growthfactor(z,norm=True, **cosmo)/int_growth(z, **cosmo) 
 
 def growthfactor(z, norm=True, **cosmo):
-  """ Returns the linear growth factor at z=z, normalised to z=0 """
+  """ Returns linear growth factor at z=z, normalised to z=0 """
 
   """
   +
@@ -383,7 +385,7 @@ def growthfactor(z, norm=True, **cosmo):
   return growthval
 
 def minimize_c(c, z=0., a_tilde=1., b_tilde=-1., Ascaling = 900., omega_M_0=0.25, omega_lambda_0=0.75):
-  """ Trial function to solve 2 equations 18 from Correa et al 2015c for 1 unknown, i.e. the concentration """
+  """ Trial function to solve 2 eqns (17 and 18) from Correa et al. (2015c) for 1 unknown, i.e. the concentration """
 
   """
   +
@@ -449,7 +451,7 @@ def minimize_c(c, z=0., a_tilde=1., b_tilde=-1., Ascaling = 900., omega_M_0=0.25
   return f1-f2
 
 def formationz(c, z, Ascaling = 900., omega_M_0=0.25, omega_lambda_0=0.75):
-  """ Rearrange eqn 18 from Correa et al 2015c to return zf for concentration 'c' at redshift 'z0' """
+  """ Rearrange eqn 18 from Correa et al (2015c) to return formation redshift for a concentration at a given redshift """
 
   Y1 = np.log(2.) - 0.5
   Yc = np.log(1.+c) - c/(1.+c)
@@ -458,7 +460,7 @@ def formationz(c, z, Ascaling = 900., omega_M_0=0.25, omega_lambda_0=0.75):
   return ( ((1.+z)**3. + omega_lambda_0/omega_M_0) * (rho_2/Ascaling) - omega_lambda_0/omega_M_0)**(1./3.) - 1.
 
 def calc_ab(zi, Mi, **cosmo):
-  """ Calculate growth rate indices a_tilde and b_tilde  """
+  """ Calculate growth rate indices a_tilde and b_tilde """
 
   """
   +
@@ -530,7 +532,7 @@ def calc_ab(zi, Mi, **cosmo):
   return a_tilde, b_tilde
 
 def acc_rate(z, zi, Mi, **cosmo):
-  """ Compute Mass Accretion Rate at redshift 'z' given halo of mass Mi at redshift zi, with zi<z always """
+  """ Compute Mass Accretion Rate for halo of a given mass and redshift at any arbitrary higher redshift """
 
 
   """
@@ -585,7 +587,7 @@ def acc_rate(z, zi, Mi, **cosmo):
   return dMdt, Mz
 
 def MAH(z, zi, Mi, **cosmo):
-  """ Compute Mass Accretion History at redshift 'z' given halo of mass Mi [Msol] at redshift zi, with zi<z always """
+  """ Compute Mass Accretion History for a given halo at arbitrarily higher redshifts """
 
   """
   +
@@ -641,7 +643,7 @@ def MAH(z, zi, Mi, **cosmo):
   return dMdt_array, Mz_array
 
 def COM(z, M, **cosmo):
-  """ Given a halo mass [Msol] and redshift calculate the concentration based on equation 19 and 20 from Correa et al 2015c """
+  """ Given a halo mass and redshift calculate its concentration based on equation 19 and 20 from Correa et al. (2015c) """
 
   ## Check that z and M are arrays
   if not hasattr(z, "__len__"):
@@ -689,7 +691,7 @@ def COM(z, M, **cosmo):
   return c_array, sig_array, nu_array, zf_array
 
 def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True, verbose=None, filename=None):
-  """ run commah on a given halo mass 'Mi' at a redshift 'zi' solving for higher redshifts 'z' """
+  """ Return commah solutions for halo mass at a redshift for arbitrary higher redshifts """
 
   """
   +
