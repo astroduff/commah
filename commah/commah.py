@@ -85,8 +85,8 @@ def _checkinput(zi, Mi, z=False, verbose=None):
         if not hasattr(Mi, "__len__"):
             Mi = np.array(Mi)
 
-        # Complex test for size / type of incoming array
-        # just in case numpy / list given
+    # Complex test for size / type of incoming array
+    # just in case numpy / list given
     try:
         z.size
     except:
@@ -162,7 +162,7 @@ def _getcosmoheader(cosmo):
     return cosmoheader
 
 
-def cduffy(z0, M0, vir='200crit', relaxed=True):
+def cduffy(z, M, vir='200crit', relaxed=True):
     """ NFW conc from Duffy 08 Table 1 for halo mass and redshift"""
 
     if vir == '200crit':
@@ -183,7 +183,7 @@ def cduffy(z0, M0, vir='200crit', relaxed=True):
     else:
         print "Didn't recognise the halo boundary definition provided ", vir
 
-    return params[0] * ((M0/(2e12/0.72))**params[1]) * ((1.+z0)**params[2])
+    return params[0] * ((M/(2e12/0.72))**params[1]) * ((1.+z)**params[2])
 
 
 def _delta_sigma(**cosmo):
@@ -279,12 +279,11 @@ def _deriv_growth(z, **cosmo):
     inv_h = (cosmo['omega_M_0']*(1. + z)**3. + cosmo['omega_lambda_0'])**(-0.5)
     fz = (1. + z) * inv_h**3.
 
-    _deriv = growthfactor(z, norm=True, **cosmo)*(inv_h**2.) *\
+    deriv_g = growthfactor(z, norm=True, **cosmo)*(inv_h**2.) *\
         1.5 * cosmo['omega_M_0'] * (1. + z)**2. -\
-        fz * growthfactor(z, norm=True, **cosmo)
-    _norm_deriv = _deriv/_int_growth(z, **cosmo)
+        fz * growthfactor(z, norm=True, **cosmo)/_int_growth(z, **cosmo)
 
-    return _norm_deriv
+    return deriv_g
 
 
 def growthfactor(z, norm=True, **cosmo):
@@ -337,13 +336,14 @@ def _minimize_c(c, z=0., a_tilde=1., b_tilde=-1.,
 
     # Eqn 14 - Define the mean inner density
     rho_2 = 200. * c**3. * Y1 / Yc
+
     # Eqn 17 rearranged to solve for Formation Redshift
     # essentially when universe had rho_2 density
-    zf = (((1.+z)**3. + omega_lambda_0/omega_M_0) *
+    zf = (((1. + z)**3. + omega_lambda_0/omega_M_0) *
           (rho_2/Ascaling) - omega_lambda_0/omega_M_0)**(1./3.) - 1.
 
     # RHS of Eqn 19
-    f2 = ((1. + zf - z)**a_tilde) * np.exp((zf - z)*b_tilde)
+    f2 = ((1. + zf - z)**a_tilde) * np.exp((zf - z) * b_tilde)
 
     # LHS - RHS should be zero for the correct concentration
     return f1-f2
@@ -556,7 +556,7 @@ def COM(z, M, **cosmo):
         a_tilde, b_tilde = calc_ab(zval, Mval, **cosmo)
 
         # Minimize equation to solve for 1 unknown, 'c'
-        c = brentq(_minimize_c, 2., 1000.,
+        c = brentq(_minimize_c, 2.5, 1000.,
                    args=(zval, a_tilde, b_tilde, cosmo['A_scaling'],
                          cosmo['omega_M_0'], cosmo['omega_lambda_0']))
 
@@ -777,7 +777,7 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
                 # Didn't pass anything, set as redshift
                 ztemp = np.array([zval])
             else:
-                # Passed list perhaps?
+                # Passed list perhaps, ensure z > zi
                 ztemp = np.array(z[z >= zval])
         else:
             ztemp = z
