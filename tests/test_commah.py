@@ -10,7 +10,7 @@ Tests for `commah` module.
 
 import unittest
 import numpy as np
-from commah import commah
+import commah
 
 
 class TestCommah(unittest.TestCase):
@@ -23,9 +23,12 @@ class TestCommah(unittest.TestCase):
                      'WMAP7', 'WMAP9', 'Planck']
         conclist = [8.84952, 6.57093, 7.66308,
                     7.893508, 8.88391, 9.25026]
-        for cosmo, concval in commah._izip(cosmolist, conclist):
+        ival = 0
+        for cosmo in cosmolist:
             output = commah.run(cosmo, Mi=[1e12])
-            assert(np.allclose(output['c'].flatten()[0], concval, rtol=1e-3))
+            assert(np.allclose(output['c'].flatten()[0],
+                   conclist[ival], rtol=1e-3))
+            ival += 1
         pass
 
     def test_evolution(self):
