@@ -13,9 +13,7 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 requirements = ['numpy>=1.9.1', 'cosmolopy', 'scipy>=0.15.1']
 
-test_requirements = [
-    # TODO: put package test requirements here
-]
+test_requirements = ['numpy>=1.9.1', 'cosmolopy', 'scipy>=0.15.1']
 
 setup(
     name='commah',
