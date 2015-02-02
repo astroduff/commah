@@ -13,12 +13,12 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 requirements = ['numpy>=1.9.1', 'cosmolopy', 'scipy>=0.15.1']
 
-test_requirements = ['numpy>=1.9.1', 'cosmolopy', 'scipy>=0.15.1']
+test_requirements = []
 
 setup(
     name='commah',
     version='0.1.0',
-    description='Get concentration - mass and accretion history for any cosmology',
+    description='Get conc - mass or accretion history for any cosmology',
     long_description=readme + '\n\n' + history,
     author='Alan Duffy',
     author_email='mail@alanrduffy.com',
