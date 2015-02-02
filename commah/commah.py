@@ -7,9 +7,7 @@ __author__ = 'Camila Correa and Alan Duffy'
 __email__ = 'mail@alanrduffy.com'
 __version__ = '0.2.0'
 
-from scipy.integrate import quad
-from scipy.optimize import brentq
-
+import scipy
 import numpy as np
 import cosmolopy as cp
 import cosmology_list as cg
@@ -97,9 +95,12 @@ def _checkinput(zi, Mi, z=False, verbose=None):
             # Passed something, not a numpy array, probably list
             if hasattr(z, "__len__"):
                 lenzout = 0
-            for test in z:
-                lenzout += 1
-            z = np.array(z)
+                for test in z:
+                    lenzout += 1
+                z = np.array(z)
+            else:
+                lenzout = 1
+                z = np.array([z])
     else:
         # Passed an array, what size is it?
         if hasattr(z, "__len__"):
@@ -267,7 +268,7 @@ def _int_growth(z, **cosmo):
 
     inv_h3 = lambda z: (1. + z)/(cosmo['omega_M_0']*(1. + z)**3. +
                                  cosmo['omega_lambda_0'])**(1.5)
-    y, yerr = quad(inv_h3, z, zmax)
+    y, yerr = scipy.integrate.quad(inv_h3, z, zmax)
 
     return y
 
@@ -556,9 +557,10 @@ def COM(z, M, **cosmo):
         a_tilde, b_tilde = calc_ab(zval, Mval, **cosmo)
 
         # Minimize equation to solve for 1 unknown, 'c'
-        c = brentq(_minimize_c, 2.5, 1000.,
-                   args=(zval, a_tilde, b_tilde, cosmo['A_scaling'],
-                         cosmo['omega_M_0'], cosmo['omega_lambda_0']))
+        c = scipy.optimize.brentq(_minimize_c, 2.5, 1000.,
+                                  args=(zval, a_tilde, b_tilde,
+                                        cosmo['A_scaling'], cosmo['omega_M_0'],
+                                        cosmo['omega_lambda_0']))
 
         if np.isclose(c, 0.):
             print "Error solving for concentration with given"

@@ -11,7 +11,7 @@ except ImportError:
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
-requirements = ['numpy>=1.9.1', 'CosmoloPy>=0.1.105', 'scipy>=0.15.1']
+requirements = ['numpy>=1.9.1', 'cosmolopy', 'scipy>=0.15.1']
 
 test_requirements = [
     # TODO: put package test requirements here
@@ -25,11 +25,8 @@ setup(
     author='Alan Duffy',
     author_email='mail@alanrduffy.com',
     url='https://github.com/astroduff/commah',
-    packages=[
-        'commah'
-    ],
-    package_dir={'commah':
-                 'commah'},
+    packages=['commah'],
+    package_dir={'commah/': ''},
     include_package_data=True,
     install_requires=requirements,
     license="BSD",
