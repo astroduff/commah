@@ -11,7 +11,7 @@ except ImportError:
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
-requirements = ['numpy>=1.9.1', 'cosmolopy', 'scipy>=0.15.1']
+requirements = ['numpy>=1.9', 'cosmolopy', 'scipy>=0.14']
 
 test_requirements = []
 
