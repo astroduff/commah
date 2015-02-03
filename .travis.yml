@@ -1,27 +1,21 @@
 # Config file for automatic testing at travis-ci.org
-
 language: python
 python:
   - 2.7
-notifications:
-  email: false
- 
-# Setup anaconda
+virtualenv:
+  system_site_packages: true
 before_install:
-  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-  - chmod +x miniconda.sh
-  - ./miniconda.sh -b
-  - export PATH=/home/travis/miniconda/bin:$PATH
-  - conda update --yes conda
-  # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
-  - sudo rm -rf /dev/shm
-  - sudo ln -s /run/shm /dev/shm
-# Install packages
-install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy
-  # Coverage packages are on my binstar channel
-#  - conda install --yes -c python-coveralls
-  - python setup.py install
+  - pip install numpy
+  - pip install python-dateutil
+  - pip install scipy
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
+notifications: 
+  email: false
+
+# install the python script
+install: 
+  - pip install --use-mirrors commah
 
 # command to run tests, e.g. python setup.py test
 script: python setup.py test
