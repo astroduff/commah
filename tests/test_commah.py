@@ -20,9 +20,11 @@ class TestCommah(unittest.TestCase):
 
     def test_cosmologies(self):
         cosmolist = ['WMAP1', 'WMAP3', 'WMAP5',
-                     'WMAP7', 'WMAP9', 'Planck']
+                     'WMAP7', 'WMAP9',
+                     'Planck13', 'Planck15']
         conclist = [8.84952, 6.57093, 7.66308,
-                    7.893508, 8.88391, 9.25026]
+                    7.893508, 8.88391,
+                    9.25026, 9.044999]
         ival = 0
         for cosmo in cosmolist:
             output = commah.run(cosmo, Mi=[1e12])

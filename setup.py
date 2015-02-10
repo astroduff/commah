@@ -17,7 +17,7 @@ test_requirements = []
 
 setup(
     name='commah',
-    version='0.2.0',
+    version='0.2.1',
     description='Get conc - mass or accretion history for any cosmology',
     long_description=readme + '\n\n' + history,
     author='Alan Duffy',
