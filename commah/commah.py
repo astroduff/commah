@@ -594,7 +594,7 @@ def COM(z, M, **cosmo):
 
 
 def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
-        filename=None, verbose=None):
+        filename=None, verbose=None, retcosmo=None):
     """ Run commah code on halo of mass 'Mi' at redshift 'zi' with
         accretion and profile history at higher redshifts 'z'
         This is based on Correa et al. (2015a,b,c)
@@ -637,6 +637,8 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
         If str is passed this is used as a filename for output of commah
     verbose : bool, optional
         If true then give comments, default is None.
+    retcosmo : bool, optional
+        If true then return cosmology used alongside structured dataset
 
     Returns
     -------
@@ -663,7 +665,10 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
         ('zi',float),('Mi',float),('z',float),('dMdt',float),('Mz',float),
         ('c',float),('sig',float),('nu',float),('zf',float)
 
-    file : structured dataset with name 'filename' if passed
+    cosmo : dict
+        cosmological parameters used as a dictionary if retcosmo set
+
+    output : structured dataset file with name 'filename' if passed
 
     Raises
     ------
@@ -826,6 +831,8 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
 
     if filename:
         fout.close()  # Close file
-        return dataset
+
+    if retcosmo:
+        return dataset, cosmo
     else:
         return dataset

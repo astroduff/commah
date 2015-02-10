@@ -526,7 +526,7 @@ def Planck_2015(flat=False, extras=True):
       omega_n_0 = 0.0, Helium mass fraction Y_He = 0.24.
 
       """
-    omega_b_0 = 0.02230/(67.74**2.)
+    omega_b_0 = 0.02230/(0.6774**2.)
     cosmo = {'omega_b_0': omega_b_0,
              'omega_M_0': 0.3089,
              'omega_lambda_0': 0.6911,
