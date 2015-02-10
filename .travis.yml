@@ -7,11 +7,10 @@ install:
   - pip install conda
   # install deps
   - conda init
-  - conda update conda --yes
   - deps='pip numpy scipy cosmolopy'
-  - conda create -p $HOME/py --yes $deps "python=$TRAVIS_PYTHON_VERSION"
-  - export PATH=$HOME/py/bin:$PATH
+#  - conda create -p $HOME/py --yes $deps "python=$TRAVIS_PYTHON_VERSION"
+#  - export PATH=$HOME/py/bin:$PATH
   # install your own package into the environment
-  - sudo pip install commah
+  - pip install commah
 script:
   - python setup.py test
