@@ -16,6 +16,17 @@ def runcommand(cosmology='WMAP5'):
 
     print output['c'].flatten()
 
+    # Return the WMAP5 cosmology concentration predicted for
+    # z=0 range of masses AND cosmological parameters
+    Mi = [1e8, 1e9, 1e10]
+    zi = 0.
+    print "Concentrations for haloes of mass ", Mi, " at z=", zi
+    output, cosmo = commah.run(cosmology=cosmology, zi=zi, Mi=Mi,
+                               retcosmo=True)
+
+    print output['c'].flatten()
+    print cosmo
+
     # Return the WMAP5 cosmology concentration predicted for MW
     # mass (2e12 Msol) across redshift
     Mi = 2e12
@@ -28,7 +39,7 @@ def runcommand(cosmology='WMAP5'):
     # Return the WMAP5 cosmology concentration predicted for MW
     # mass (2e12 Msol) across redshift
     Mi = 2e12
-    z = [0., 0.5, 1., 1.5, 2., 2.5]
+    zi = [0., 0.5, 1., 1.5, 2., 2.5]
     output = commah.run(cosmology=cosmology, zi=zi, Mi=Mi)
     for zval in zi:
         print "M(z=", zval, ")=", Mi, " has concentration ",\
@@ -95,6 +106,8 @@ def plotcommand(cosmology='WMAP5', plotname=None):
     ax = fig.add_subplot(111)
     ax.set_xlabel(xtitle)
     ax.set_ylabel(ytitle)
+    plt.ylim([2., 30.])
+
     colors = cm.rainbow(np.linspace(0, 1, len(zarray)))
 
     for zind, zval in enumerate(zarray):
@@ -104,7 +117,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
         yarray = output[yval].flatten()
 
         # Plot each line in turn with different colour
-        ax.plot(xarray, yarray, label=linelabel+str(zval), color=colors[zind],)
+        ax.plot(xarray, yarray, label=linelabel+str(zval), color=colors[zind])
         # Overplot the D08 predictions in black
         ax.plot(xarray, commah.cduffy(zval, xarray), color="black")
 

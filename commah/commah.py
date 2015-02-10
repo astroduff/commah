@@ -638,7 +638,8 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
     verbose : bool, optional
         If true then give comments, default is None.
     retcosmo : bool, optional
-        If true then return cosmology used alongside structured dataset
+        Return cosmological parameters used as a dict if retcosmo = True,
+        default is None.
 
     Returns
     -------
@@ -665,10 +666,7 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
         ('zi',float),('Mi',float),('z',float),('dMdt',float),('Mz',float),
         ('c',float),('sig',float),('nu',float),('zf',float)
 
-    cosmo : dict
-        cosmological parameters used as a dictionary if retcosmo set
-
-    output : structured dataset file with name 'filename' if passed
+    file : structured dataset with name 'filename' if passed
 
     Raises
     ------
@@ -713,21 +711,19 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
         if verbose:
             print "Output requested is zi, Mi, z, dMdt, Mz, c, sig, nu, zf"
         if filename:
-            if verbose:
-                print "Output to file is z, c, Mz, sig, nu, dMdt"
             fout.write(_getcosmoheader(cosmo)+'\n')
             fout.write("# Initial z - Initial Halo  - Output z - "
-                       "concentration -   Final Halo    -   Mass    - "
-                       "Peak    - Accretion"+'\n')
-            fout.write("#           -   mass        -          -"
-                       "               -    mass         - Variance  - "
-                       "Height  -   rate"+'\n')
-            fout.write("#           -   (M200)      -          -     (c200)"
-                       "    -   (M200)        - (sigma)   - (nu)    -"
-                       "  (dM200/dt)"+'\n')
-            fout.write("#           -   [Msol]      -          -"
-                       "               -   [Msol]        -           -"
-                       "         -  [Msol/yr]"+'\n')
+                       " Accretion -  Final Halo  - concentration - "
+                       "    Mass   -    Peak    -  Formation z "+'\n')
+            fout.write("#           -     mass      -          -"
+                       "    rate    -     mass     -               - "
+                       " Variance  -   Height   -              "+'\n')
+            fout.write("#           -    (M200)     -          - "
+                       "  (dM/dt)  -    (M200)    -               - "
+                       "  (sigma)  -    (nu)    -              "+'\n')
+            fout.write("#           -    [Msol]     -          - "
+                       " [Msol/yr] -    [Msol]    -               - "
+                       "           -            -              "+'\n')
         dataset = np.zeros((lenm, lenzout), dtype=[('zi', float),
                            ('Mi', float), ('z', float), ('dMdt', float),
                            ('Mz', float), ('c', float), ('sig', float),
@@ -736,35 +732,35 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
         if verbose:
             print "Output requested is zi, Mi, z, dMdt, Mz"
         if filename:
-            if verbose:
-                print "Output to file is z, Mz, dMdt"
             fout.write(_getcosmoheader(cosmo)+'\n')
             fout.write("# Initial z - Initial Halo  - Output z -"
-                       "   Final Halo - Accretion"+'\n')
-            fout.write("#           -   mass        -          -"
-                       "   mass       -   rate"+'\n')
-            fout.write("#           -   (M200)      -          -"
-                       "   (M200)     -  (dM200/dt)"+'\n')
-            fout.write("#           -   [Msol]      -          -"
-                       "   [Msol]     -  [Msol/yr]"+'\n')
+                       "   Accretion - Final Halo "+'\n')
+            fout.write("#           -     mass      -          -"
+                       "     rate    -   mass     "+'\n')
+            fout.write("#           -    (M200)     -          -"
+                       "    (dm/dt)  -  (M200)    "+'\n')
+            fout.write("#           -    [Msol]     -          -"
+                       "   [Msol/yr] -  [Msol]    "+'\n')
         dataset = np.zeros((lenm, lenzout), dtype=[('zi', float),
                            ('Mi', float), ('z', float),
                            ('dMdt', float), ('Mz', float)])
     else:
         if verbose:
-            print "Output requested is zi, Mi, c, sig, nu, zf"
+            print "Output requested is zi, Mi, z, c, sig, nu, zf"
         if filename:
-            if verbose:
-                print "Output to file is z, c, Mz, sig, nu"
             fout.write(_getcosmoheader(cosmo)+'\n')
-            fout.write("# z - concentration -   Halo    -   Mass"
-                       "    - Peak"+'\n')
-            fout.write("#   -               -   mass    - Variance"
-                       "  - Height"+'\n')
-            fout.write("#   -     (c200)    -   (M200)  - (sigma)   -"
-                       " (nu)"+'\n')
-            fout.write("#   -               -   [Msol]  -           -"
-                       "     "+'\n')
+            fout.write("# Initial z - Initial Halo  - Output z - "
+                       " concentration - "
+                       "  Mass    -    Peak    -  Formation z "+'\n')
+            fout.write("#           -     mass      -          -"
+                       "                -"
+                       " Variance  -   Height   -              "+'\n')
+            fout.write("#           -   (M200)      -          - "
+                       "               - "
+                       " (sigma)  -    (nu)    -              "+'\n')
+            fout.write("#           -   [Msol]      -          - "
+                       "               - "
+                       "          -            -            "+'\n')
         dataset = np.zeros((lenm, lenzout), dtype=[('zi', float),
                            ('Mi', float), ('z', float), ('c', float),
                            ('sig', float), ('nu', float), ('zf', float)])
@@ -796,20 +792,19 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
             # Return accretion rates and halo mass progenitors at
             # redshifts 'z' for object of mass Mi at zi
             dMdt, Mz = MAH(ztemp, zval, Mval, **cosmo)
-            if com:
+            if mah and com:
                 # More expensive to return concentrations
                 c, sig, nu, zf = COM(ztemp, Mz, **cosmo)
-            if mah and com:
                 # Save all arrays
                 for j_ind, j_val in enumerate(ztemp):
                     dataset[i_ind, j_ind] = zval, Mval, ztemp[j_ind],\
                         dMdt[j_ind], Mz[j_ind], c[j_ind],\
                         sig[j_ind], nu[j_ind], zf[j_ind]
                     if filename:
-                        fout.write("{}, {}, {}, {}, {}, {}, {}, {} \n".
-                                   format(zval, Mval, ztemp[j_ind], c[j_ind],
-                                          Mz[j_ind], sig[j_ind], nu[j_ind],
-                                          dMdt[j_ind]))
+                        fout.write("{}, {}, {}, {}, {}, {}, {}, {}, {} \n".
+                                   format(zval, Mval, ztemp[j_ind],
+                                          dMdt[j_ind], Mz[j_ind], c[j_ind],
+                                          sig[j_ind], nu[j_ind], zf[j_ind]))
             elif mah:
                 # Save only MAH arrays
                 for j_ind, j_val in enumerate(ztemp):
@@ -818,14 +813,20 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
                     if filename:
                         fout.write("{}, {}, {}, {}, {} \n".
                                    format(zval, Mval, ztemp[j_ind],
-                                          Mz[j_ind], dMdt[j_ind]))
-        else:  # No z output array, solve at zi
-            c, sig, nu, zf = COM(zval, Mval, **cosmo)
-            # For any halo mass Mi at redshift zi solve for c, sig, nu and zf
-            dataset[i_ind, :] = zval, Mval, zval, c, sig, nu, zf
-            if filename:
-                fout.write("{}, {}, {}, {}, {} \n".
-                           format(zval, c, Mval, sig, nu))
+                                          dMdt[j_ind], Mz[j_ind]))
+            else:
+                # Output only COM arrays
+                c, sig, nu, zf = COM(ztemp, Mz, **cosmo)
+                # For any halo mass Mi at redshift zi
+                # solve for c, sig, nu and zf
+                for j_ind, j_val in enumerate(ztemp):
+                    dataset[i_ind, j_ind] = zval, Mval, ztemp[j_ind],\
+                        c[j_ind], sig[j_ind], nu[j_ind], zf[j_ind]
+                    if filename:
+                        fout.write("{}, {}, {}, {}, {}, {}, {} \n".
+                                   format(zval, Mval, ztemp[j_ind],
+                                          c[j_ind], sig[j_ind],
+                                          nu[j_ind], zf[j_ind]))
 
         i_ind += 1
 
