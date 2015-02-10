@@ -1,1 +1,4 @@
 wheel==0.23.0
+cosmolopy
+scipy>=0.14
+numpy>=1.9
