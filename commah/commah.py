@@ -122,7 +122,8 @@ def getcosmo(cosmology):
     defaultcosmologies = {'dragons': cg.DRAGONS(), 'wmap1': cg.WMAP1_Mill(),
                           'wmap3': cg.WMAP3_ML(), 'wmap5': cg.WMAP5_mean(),
                           'wmap7': cg.WMAP7_ML(), 'wmap9': cg.WMAP9_ML(),
-                          'planck': cg.Planck_2013()}
+                          'planck13': cg.Planck_2013(),
+                          'planck15': cg.Planck_2015()}
 
     if isinstance(cosmology, dict):
         # User providing their own variables
@@ -223,7 +224,7 @@ def getAscaling(cosmology, newcosmo=None):
     ----------
     cosmology : str or dict
         Can be named cosmology, default WMAP7 (aka DRAGONS), or
-        DRAGONS, WMAP1, WMAP3, WMAP5, WMAP7, WMAP9, Planck
+        DRAGONS, WMAP1, WMAP3, WMAP5, WMAP7, WMAP9, Planck13, Planck15
         or dictionary similar in format to:
         {'N_nu': 0,'Y_He': 0.24, 'h': 0.702, 'n': 0.963,'omega_M_0': 0.275,
          'omega_b_0': 0.0458,'omega_lambda_0': 0.725,'omega_n_0': 0.0,
@@ -238,9 +239,10 @@ def getAscaling(cosmology, newcosmo=None):
         The scaled 'A' relation between rho_2 and rho_crit for the cosmology
 
     """
+    # Values from Correa 15c
     defaultcosmologies = {'dragons': 887., 'wmap1': 853., 'wmap3': 850.,
                           'wmap5': 887., 'wmap7': 887., 'wmap9': 950.,
-                          'planck': 880.}  # Values from Correa 15c
+                          'planck13': 880., 'planck15': 880.}
 
     if newcosmo:
         # Scale from default WMAP5 cosmology using Correa et al 14b eqn C1
@@ -601,7 +603,7 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
     ----------
     cosmology : str or dict
         Can be named cosmology, default WMAP7 (aka DRAGONS), or
-        DRAGONS, WMAP1, WMAP3, WMAP5, WMAP7, WMAP9, Planck
+        DRAGONS, WMAP1, WMAP3, WMAP5, WMAP7, WMAP9, Planck13, Planck15
         or dictionary similar in format to:
         {'N_nu': 0,'Y_He': 0.24, 'h': 0.702, 'n': 0.963,'omega_M_0': 0.275,
          'omega_b_0': 0.0458,'omega_lambda_0': 0.725,'omega_n_0': 0.0,
