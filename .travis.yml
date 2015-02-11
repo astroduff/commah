@@ -13,13 +13,13 @@ before_install:
   - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
   - sudo apt-get install python-numpy 
   - sudo apt-get install python-scipy
-  - travis_retry pip install cosmolopy
+  - sudo pip install cosmolopy
 notifications: 
   email: false
 
 # install the python script
 install: 
-  - travis_retry pip install commah
+  - sudo pip install commah
 
 # command to run tests, e.g. python setup.py test
 script: python setup.py test
