@@ -18,22 +18,23 @@ Note that implicitly this assumes halo virial mass is 200 times critical overden
 ### Getting started
 
 If you have `pip' then commah can be run using:
+```
 $ pip install commah
 $ python
 >>> import commah
 >>> cosmo = 'WMAP9'
 >>> output = commah.run(cosmo, zi=0., Mi=1e12, z=[0.,1.0,2.0], filename=cosmo+'_commah.txt')
-
+```
 ### Examples
 
 Several plot and command line usage examples are given in examples.py
 and can be called using
-
+```
 $ python
 >>> from commah import examples
 >>> examples.runcommand()
 >>> examples.plotcommand()
-
+```
 ### Support and Contact
 
 If you have trouble with commah or you have feature requests/suggestions please
