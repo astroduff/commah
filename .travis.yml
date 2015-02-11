@@ -3,14 +3,6 @@ language: python
 python:
   - "2.7"
 install:
-  # Install conda
-  - pip install conda
-  # install deps
-  - conda init
-  - deps='pip numpy scipy cosmolopy'
-#  - conda create -p $HOME/py --yes $deps "python=$TRAVIS_PYTHON_VERSION"
-#  - export PATH=$HOME/py/bin:$PATH
-  # install your own package into the environment
-  - python setup.py install
+  - pip install commah
 script:
   - python setup.py test
