@@ -11,8 +11,10 @@ virtualenv:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
-#  - sudo apt-get install python-numpy 
-#  - sudo apt-get install python-scipy
+  - sudo apt-get install python-numpy 
+  - sudo apt-get install python-scipy
+  - sudo pip install -q numpy==1.9
+  - sudo pip install -q scipy==0.15
   - sudo pip install cosmolopy
 notifications: 
   email: false
