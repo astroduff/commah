@@ -1,8 +1,25 @@
 # Config file for automatic testing at travis-ci.org
-language: python
+
+# language: python
+# Use c to install scipy with apt-get rather than pip
+
+language: c
 python:
-  - "2.7"
-install:
-  - pip install commah
-script:
-  - python setup.py test
+  - 2.7
+virtualenv:
+  system_site_packages: true
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
+  - sudo apt-get install python-numpy 
+  - sudo apt-get install python-scipy
+  - travis_retry pip install cosmolopy
+notifications: 
+  email: false
+
+# install the python script
+install: 
+  - travis_retry pip install commah
+
+# command to run tests, e.g. python setup.py test
+script: python setup.py test
