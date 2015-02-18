@@ -13,8 +13,8 @@ before_install:
   - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
   - sudo apt-get install python-numpy 
   - sudo apt-get install python-scipy
-  - sudo pip install -v numpy==1.9
-  - sudo pip install -v scipy==0.15
+  - (while true; do echo "Still working..."; sleep 120; done &); sudo pip install -q numpy==1.9
+  - (while true; do echo "Still working..."; sleep 120; done &); sudo pip install -q scipy==0.15
   - sudo pip install cosmolopy
 notifications: 
   email: false
