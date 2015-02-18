@@ -9,12 +9,13 @@ python:
 virtualenv:
   system_site_packages: true
 before_install:
+  - while true; do echo "Still working..."; sleep 120; done &
   - sudo apt-get update -qq
   - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
   - sudo apt-get install python-numpy 
   - sudo apt-get install python-scipy
-  - (while true; do echo "Still working..."; sleep 120; done &); sudo pip install -q numpy==1.9
-  - (while true; do echo "Still working..."; sleep 120; done &); sudo pip install -q scipy==0.15
+  - sudo pip install -q numpy==1.9
+  - sudo pip install -q scipy==0.15
   - sudo pip install cosmolopy
 notifications: 
   email: false
