@@ -122,6 +122,11 @@ def getcosmo(cosmology):
     defaultcosmologies = {'dragons': cg.DRAGONS(), 'wmap1': cg.WMAP1_Mill(),
                           'wmap3': cg.WMAP3_ML(), 'wmap5': cg.WMAP5_mean(),
                           'wmap7': cg.WMAP7_ML(), 'wmap9': cg.WMAP9_ML(),
+                          'wmap1_lss' : cg.WMAP1_2dF_mean(), 
+                          'wmap3_mean' : cg.WMAP3_mean(),
+                          'wmap5_ml' : cg.WMAP5_ML(), 
+                          'wmap5_lss' : cg.WMAP5_BAO_SN_mean(),
+                          'wmap7_lss' : cg.WMAP7_BAO_H0_mean(), 
                           'planck13': cg.Planck_2013(),
                           'planck15': cg.Planck_2015()}
 
@@ -140,7 +145,7 @@ def getcosmo(cosmology):
     elif cosmology.lower() in defaultcosmologies.keys():
         # Load by name of cosmology instead
         cosmo = defaultcosmologies[cosmology.lower()]
-        A_scaling = getAscaling(cosmology.lower())
+        A_scaling = getAscaling(cosmology)
         cosmo.update({'A_scaling': A_scaling})
     else:
         print "You haven't passed a dict of cosmological parameters "
@@ -242,6 +247,9 @@ def getAscaling(cosmology, newcosmo=None):
     # Values from Correa 15c
     defaultcosmologies = {'dragons': 887., 'wmap1': 853., 'wmap3': 850.,
                           'wmap5': 887., 'wmap7': 887., 'wmap9': 950.,
+                          'wmap1_lss': 853., 'wmap3_mean': 850., 
+                          'wmap5_ml': 887., 'wmap5_lss': 887., 
+                          'wmap7_lss': 887.,
                           'planck13': 880., 'planck15': 880.}
 
     if newcosmo:
@@ -251,8 +259,8 @@ def getAscaling(cosmology, newcosmo=None):
         if cosmology.lower() in defaultcosmologies.keys():
             A_scaling = defaultcosmologies[cosmology.lower()]
         else:
-            print "Error, don't recognise your cosmology for A_scaling "
-            print "You provided ", cosmology
+             print "Error, don't recognise your cosmology for A_scaling "
+             print "You provided ", cosmology
 
     return A_scaling
 

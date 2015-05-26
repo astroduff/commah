@@ -129,7 +129,7 @@ def WMAP1_Mill(flat=False, extras=True):
 
 
 def WMAP3_mean(flat=False, extras=True):
-    """WMAP3 Maximum Liklihood from Spergel et al. (2007) ApJS 170 377-408
+    """WMAP3 mean fit from Spergel et al. (2007) ApJS 170 377-408
     (arXiv:astro-ph/0603449)
 
     Parameters
@@ -249,7 +249,7 @@ def WMAP5_BAO_SN_mean(flat=False, extras=True):
       t0 = 13.72 +/- 0.12 Gyr
 
       """
-    omega_c_0 = 0.228
+    omega_c_0 = 0.2284
     omega_b_0 = 0.0456
     cosmo = {'omega_b_0': omega_b_0,
              'omega_M_0': omega_b_0 + omega_c_0,
@@ -373,7 +373,7 @@ def WMAP7_ML(flat=False, extras=True):
       omega_n_0 = 0.0, Helium mass fraction Y_He = 0.24.
 
       """
-    omega_c_0 = 0.217
+    omega_c_0 = 0.2175
     omega_b_0 = 0.0445
     cosmo = {'omega_b_0': omega_b_0,
              'omega_M_0': omega_b_0 + omega_c_0,
@@ -411,7 +411,7 @@ def WMAP7_BAO_H0_mean(flat=False, extras=True):
       omega_n_0 = 0.0, Helium mass fraction Y_He = 0.24.
 
       """
-    omega_c_0 = 0.227  # 0.228
+    omega_c_0 = 0.2264  # 0.228
     omega_b_0 = 0.0456  # 0.0456
     cosmo = {'omega_b_0': omega_b_0,
              'omega_M_0': omega_b_0 + omega_c_0,
