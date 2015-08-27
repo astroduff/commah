@@ -567,7 +567,7 @@ def COM(z, M, **cosmo):
         a_tilde, b_tilde = calc_ab(zval, Mval, **cosmo)
 
         # Minimize equation to solve for 1 unknown, 'c'
-        c = scipy.optimize.brentq(_minimize_c, 2.5, 1000.,
+        c = scipy.optimize.brentq(_minimize_c, 2., 1000.,
                                   args=(zval, a_tilde, b_tilde,
                                         cosmo['A_scaling'], cosmo['omega_M_0'],
                                         cosmo['omega_lambda_0']))
