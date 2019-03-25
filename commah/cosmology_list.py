@@ -2,6 +2,8 @@
     copied and expanded from the cosmolopy list that's no longer updated.
 """
 
+from __future__ import absolute_import, division, print_function
+
 
 def add_extras(cosmo):
     """Sets neutrino number N_nu = 0, neutrino density

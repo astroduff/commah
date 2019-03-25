@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -11,21 +13,21 @@ def runcommand(cosmology='WMAP5'):
     # z=0 range of masses
     Mi = [1e8, 1e9, 1e10]
     zi = 0.
-    print "Concentrations for haloes of mass ", Mi, " at z=", zi
+    print("Concentrations for haloes of mass %s at z=%s" % (Mi, zi))
     output = commah.run(cosmology=cosmology, zi=zi, Mi=Mi)
 
-    print output['c'].flatten()
+    print(output['c'].flatten())
 
     # Return the WMAP5 cosmology concentration predicted for
     # z=0 range of masses AND cosmological parameters
     Mi = [1e8, 1e9, 1e10]
     zi = 0.
-    print "Concentrations for haloes of mass ", Mi, " at z=", zi
+    print("Concentrations for haloes of mass %s at z=%s" % (Mi, zi))
     output, cosmo = commah.run(cosmology=cosmology, zi=zi, Mi=Mi,
                                retcosmo=True)
 
-    print output['c'].flatten()
-    print cosmo
+    print(output['c'].flatten())
+    print(cosmo)
 
     # Return the WMAP5 cosmology concentration predicted for MW
     # mass (2e12 Msol) across redshift
@@ -33,8 +35,8 @@ def runcommand(cosmology='WMAP5'):
     z = [0., 0.5, 1., 1.5, 2., 2.5]
     output = commah.run(cosmology=cosmology, zi=0., Mi=Mi, z=z)
     for zval in z:
-        print "M(z=0)=", Mi, " has c(z=", zval, ")= ",\
-              output[output['z'] == zval]['c'].flatten()
+        print("M(z=0)=%s has c(z=%s)=%s"
+              % (Mi, zval, output[output['z'] == zval]['c'].flatten()))
 
     # Return the WMAP5 cosmology concentration predicted for MW
     # mass (2e12 Msol) across redshift
@@ -42,21 +44,21 @@ def runcommand(cosmology='WMAP5'):
     zi = [0., 0.5, 1., 1.5, 2., 2.5]
     output = commah.run(cosmology=cosmology, zi=zi, Mi=Mi)
     for zval in zi:
-        print "M(z=", zval, ")=", Mi, " has concentration ",\
-              output[(output['zi'] == zval) &
-                     (output['z'] == zval)]['c'].flatten()
+        print("M(z=%s)=%s has concentration %s"
+              % (zval, Mi, output[(output['zi'] == zval) &
+                                  (output['z'] == zval)]['c'].flatten()))
 
     # Return the WMAP5 cosmology concentration and
     # rarity of high-z cluster
     Mi = 2e14
     zi = 6.
     output = commah.run(cosmology=cosmology, zi=zi, Mi=Mi)
-    print "Concentrations for haloes of mass ", Mi, " at z=", zi
-    print output['c'].flatten()
-    print "Mass variance sigma of haloes of mass ", Mi, " at z=", zi
-    print output['sig'].flatten()
-    print "Fluctuation for haloes of mass ", Mi, " at z=", zi
-    print output['nu'].flatten()
+    print("Concentrations for haloes of mass %s at z=%s" % (Mi, zi))
+    print(output['c'].flatten())
+    print("Mass variance sigma of haloes of mass %s at z=%s" % (Mi, zi))
+    print(output['sig'].flatten())
+    print("Fluctuation for haloes of mass %s at z=%s" % (Mi, zi))
+    print(output['nu'].flatten())
 
     # Return the WMAP5 cosmology accretion rate prediction
     # for haloes at range of redshift and mass
@@ -65,25 +67,25 @@ def runcommand(cosmology='WMAP5'):
     z = [0., 0.5, 1., 1.5, 2., 2.5]
     output = commah.run(cosmology=cosmology, zi=zi, Mi=Mi, z=z)
     for Mval in Mi:
-        print "dM/dt for halo of mass ", Mval, " at z=", zi,\
-              " across redshift ", z, " is: "
-        print output[output['Mi'] == Mval]['dMdt'].flatten()
+        print("dM/dt for halo of mass %s at z=%s across redshift %s is: "
+              % (Mval, zi, z))
+        print(output[output['Mi'] == Mval]['dMdt'].flatten())
 
     # Return the WMAP5 cosmology Halo Mass History for haloes with M(z=0) = 1e8
     M = [1e8]
     z = [0., 0.5, 1., 1.5, 2., 2.5]
-    print "Halo Mass History for z=0 mass of ", M, " across z=", z
+    print("Halo Mass History for z=0 mass of %s across z=%s" % (M, z))
     output = commah.run(cosmology=cosmology, zi=0., Mi=M, z=z)
-    print output['Mz'].flatten()
+    print(output['Mz'].flatten())
 
     # Return the WMAP5 cosmology formation redshifts for haloes at
     # range of redshift and mass
     M = [1e8, 1e9, 1e10]
     z = [0.]
-    print "Formation Redshifts for haloes of mass ", M, " at z=", z
+    print("Formation Redshifts for haloes of mass %s at z=%s" % (M, z))
     output = commah.run(cosmology=cosmology, zi=0., Mi=M, z=z)
     for Mval in M:
-        print output[output['Mi'] == Mval]['zf'].flatten()
+        print(output[output['Mi'] == Mval]['zf'].flatten())
 
     return "Done"
 
@@ -135,7 +137,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
 
     if plotname:
         fig.tight_layout(pad=0.2)
-        print "Plotting to ", plotname+"_CM_relation.png"
+        print("Plotting to '%s_CM_relation.png'" % (plotname))
         fig.savefig(plotname+"_CM_relation.png", dpi=fig.dpi*5)
     else:
         plt.show()
@@ -179,7 +181,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
 
     if plotname:
         fig.tight_layout(pad=0.2)
-        print "Plotting to ", plotname+"_Cz_relation.png"
+        print("Plotting to '%s_Cz_relation.png'" % (plotname))
         fig.savefig(plotname+"_Cz_relation.png", dpi=fig.dpi*5)
     else:
         plt.show()
@@ -222,7 +224,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
 
     if plotname:
         fig.tight_layout(pad=0.2)
-        print "Plotting to ", plotname+"_zfz_relation.png"
+        print("Plotting to '%s_zfz_relation.png'" % (plotname))
         fig.savefig(plotname+"_zfz_relation.png", dpi=fig.dpi*5)
     else:
         plt.show()
@@ -275,7 +277,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
 
     if plotname:
         fig.tight_layout(pad=0.2)
-        print "Plotting to ", plotname+"_dMdtz_relation.png"
+        print("Plotting to '%s_dMdtz_relation.png'" % (plotname))
         fig.savefig(plotname+"_dMdtz_relation.png", dpi=fig.dpi*5)
     else:
         plt.show()
@@ -321,7 +323,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
 
     if plotname:
         fig.tight_layout(pad=0.2)
-        print "Plotting to ", plotname+"_MAH_M_relation.png"
+        print("Plotting to '%s_MAH_M_relation.png'" % (plotname))
         fig.savefig(plotname+"_MAH_M_relation.png", dpi=fig.dpi*5)
     else:
         plt.show()
@@ -367,7 +369,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
 
     if plotname:
         fig.tight_layout(pad=0.2)
-        print "Plotting to ", plotname+"_specificMAH_M_relation.png"
+        print("Plotting to '%s_specificMAH_M_relation.png'" % (plotname))
         fig.savefig(plotname+"_specificMAH_M_relation.png", dpi=fig.dpi*5)
     else:
         plt.show()
@@ -413,7 +415,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
 
     if plotname:
         fig.tight_layout(pad=0.2)
-        print "Plotting to ", plotname+"_Mzz_relation.png"
+        print("Plotting to '%s_Mzz_relation.png'" % (plotname))
         fig.savefig(plotname+"_Mzz_relation.png", dpi=fig.dpi*5)
     else:
         plt.show()
@@ -456,7 +458,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
 
     if plotname:
         fig.tight_layout(pad=0.2)
-        print "Plotting to ", plotname+"_MzM0z_relation.png"
+        print("Plotting to '%s_MzM0z_relation.png'" % (plotname))
         fig.savefig(plotname+"_MzM0z_relation.png", dpi=fig.dpi*5)
     else:
         plt.show()
