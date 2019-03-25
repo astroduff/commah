@@ -5,12 +5,14 @@
 
 __author__ = 'Camila Correa and Alan Duffy'
 __email__ = 'mail@alanrduffy.com'
-__version__ = '0.1.0'
 
+from __future__ import absolute_import, division, print_function
+
+from commah import __version__
 import scipy
 import numpy as np
-import cosmolopy as cp
-import cosmology_list as cg
+import commah.cosmolopy as cp
+import commah.cosmology_list as cg
 
 
 def _izip(*iterables):
@@ -49,13 +51,13 @@ def _checkinput(zi, Mi, z=False, verbose=None):
     # one axis is length one, then replicate values to the size of the other
     if (lenz > 1) & (lenm > 1):
         if lenz != lenm:
-            print "Error ambiguous request"
-            print "Need individual redshifts for all haloes provided "
-            print "Or have all haloes at same redshift "
+            print("Error ambiguous request")
+            print("Need individual redshifts for all haloes provided ")
+            print("Or have all haloes at same redshift ")
             return -1
     elif (lenz == 1) & (lenm > 1):
         if verbose:
-            print "Assume zi is the same for all Mi halo masses provided"
+            print("Assume zi is the same for all Mi halo masses provided")
         # Replicate redshift for all halo masses
         tmpz = zi
         zi = np.empty(lenm)
@@ -66,7 +68,7 @@ def _checkinput(zi, Mi, z=False, verbose=None):
         lenz = lenm
     elif (lenm == 1) & (lenz > 1):
         if verbose:
-            print "Assume Mi halo masses are the same for all zi provided"
+            print("Assume Mi halo masses are the same for all zi provided")
         # Replicate redshift for all halo masses
         tmpm = Mi
         Mi = np.empty(lenz)
@@ -77,7 +79,7 @@ def _checkinput(zi, Mi, z=False, verbose=None):
         lenm = lenz
     else:
         if verbose:
-            print "A single Mi and zi provided"
+            print("A single Mi and zi provided")
         if not hasattr(zi, "__len__"):
             zi = np.array(zi)
         if not hasattr(Mi, "__len__"):
@@ -122,11 +124,11 @@ def getcosmo(cosmology):
     defaultcosmologies = {'dragons': cg.DRAGONS(), 'wmap1': cg.WMAP1_Mill(),
                           'wmap3': cg.WMAP3_ML(), 'wmap5': cg.WMAP5_mean(),
                           'wmap7': cg.WMAP7_ML(), 'wmap9': cg.WMAP9_ML(),
-                          'wmap1_lss' : cg.WMAP1_2dF_mean(), 
-                          'wmap3_mean' : cg.WMAP3_mean(),
-                          'wmap5_ml' : cg.WMAP5_ML(), 
-                          'wmap5_lss' : cg.WMAP5_BAO_SN_mean(),
-                          'wmap7_lss' : cg.WMAP7_BAO_H0_mean(), 
+                          'wmap1_lss': cg.WMAP1_2dF_mean(),
+                          'wmap3_mean': cg.WMAP3_mean(),
+                          'wmap5_ml': cg.WMAP5_ML(),
+                          'wmap5_lss': cg.WMAP5_BAO_SN_mean(),
+                          'wmap7_lss': cg.WMAP7_BAO_H0_mean(),
                           'planck13': cg.Planck_2013(),
                           'planck15': cg.Planck_2015()}
 
@@ -148,8 +150,8 @@ def getcosmo(cosmology):
         A_scaling = getAscaling(cosmology)
         cosmo.update({'A_scaling': A_scaling})
     else:
-        print "You haven't passed a dict of cosmological parameters "
-        print "OR a recognised cosmology, you gave ", cosmology
+        print("You haven't passed a dict of cosmological parameters ")
+        print("OR a recognised cosmology, you gave %s" % (cosmology))
     # No idea why this has to be done by hand but should be O_k = 0
     cosmo = cp.distance.set_omega_k_0(cosmo)
 
@@ -247,8 +249,8 @@ def getAscaling(cosmology, newcosmo=None):
     # Values from Correa 15c
     defaultcosmologies = {'dragons': 887., 'wmap1': 853., 'wmap3': 850.,
                           'wmap5': 887., 'wmap7': 887., 'wmap9': 950.,
-                          'wmap1_lss': 853., 'wmap3_mean': 850., 
-                          'wmap5_ml': 887., 'wmap5_lss': 887., 
+                          'wmap1_lss': 853., 'wmap3_mean': 850.,
+                          'wmap5_ml': 887., 'wmap5_lss': 887.,
                           'wmap7_lss': 887.,
                           'planck13': 880., 'planck15': 880.}
 

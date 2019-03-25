@@ -2,7 +2,10 @@
 
 __author__ = 'Alan Duffy'
 __email__ = 'mail@alanrduffy.com'
-__version__ = '0.1.0'
 
-from commah import run
-from commah import getcosmo
+from .__version__ import version as __version__
+from . import commah
+from .commah import run
+from .commah import getcosmo
+
+__all__ = ['commah', 'run', 'getcosmo']
