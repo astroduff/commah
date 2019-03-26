@@ -23,11 +23,6 @@ long_description = "\n\n".join([readme, history])
 with open('requirements.txt', 'r') as f:
     requirements = f.read().splitlines()
 
-# Get the test requirements list
-with open('requirements_test.txt', 'r') as f:
-    test_requirements = list(requirements)
-    test_requirements.extend(f.read().splitlines())
-
 # Get the current package version
 version = None
 with open('commah/__version__.py', 'r') as f:
@@ -65,6 +60,4 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
-    test_suite='tests',
-    tests_require=test_requirements
 )

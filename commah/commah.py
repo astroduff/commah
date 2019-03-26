@@ -5,13 +5,13 @@
 
 from __future__ import absolute_import, division, print_function
 
-__author__ = 'Camila Correa and Alan Duffy'
-__email__ = 'mail@alanrduffy.com'
-
 import scipy
 import numpy as np
 import cosmolopy as cp
 import commah.cosmology_list as cg
+
+__author__ = 'Camila Correa and Alan Duffy'
+__email__ = 'mail@alanrduffy.com'
 
 
 def _izip(*iterables):
