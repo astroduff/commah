@@ -27,94 +27,44 @@ def _izip(*iterables):
 def _checkinput(zi, Mi, z=False, verbose=None):
     """ Check and convert any input scalar or array to numpy array """
     # How many halo redshifts provided?
-    if hasattr(zi, "__len__"):
-        lenz = 0
-        for test in zi:
-            lenz += 1
-        zi = np.array(zi)
-    else:
-        lenz = 1
-        zi = np.array([zi])
+    zi = np.array(zi, ndmin=1, dtype=float)
 
     # How many halo masses provided?
-    if hasattr(Mi, "__len__"):
-        lenm = 0
-        for test in Mi:
-            lenm += 1
-        Mi = np.array(Mi)
-    else:
-        lenm = 1
-        Mi = np.array([Mi])
+    Mi = np.array(Mi, ndmin=1, dtype=float)
 
     # Check the input sizes for zi and Mi make sense, if not then exit unless
     # one axis is length one, then replicate values to the size of the other
-    if (lenz > 1) & (lenm > 1):
-        if lenz != lenm:
+    if (zi.size > 1) and (Mi.size > 1):
+        if(zi.size != Mi.size):
             print("Error ambiguous request")
             print("Need individual redshifts for all haloes provided ")
             print("Or have all haloes at same redshift ")
-            return -1
-    elif (lenz == 1) & (lenm > 1):
+            return(-1)
+    elif (zi.size == 1) and (Mi.size > 1):
         if verbose:
             print("Assume zi is the same for all Mi halo masses provided")
         # Replicate redshift for all halo masses
-        tmpz = zi
-        zi = np.empty(lenm)
-        if hasattr(tmpz, "__len__"):
-            zi.fill(tmpz[0])
-        else:
-            zi.fill(tmpz)
-        lenz = lenm
-    elif (lenm == 1) & (lenz > 1):
+        zi = np.ones_like(Mi)*zi[0]
+    elif (Mi.size == 1) and (zi.size > 1):
         if verbose:
             print("Assume Mi halo masses are the same for all zi provided")
         # Replicate redshift for all halo masses
-        tmpm = Mi
-        Mi = np.empty(lenz)
-        if hasattr(tmpm, "__len__"):
-            Mi.fill(tmpm[0])
-        else:
-            Mi.fill(tmpm)
-        lenm = lenz
+        Mi = np.ones_like(zi)*Mi[0]
     else:
         if verbose:
             print("A single Mi and zi provided")
-        if not hasattr(zi, "__len__"):
-            zi = np.array(zi)
-        if not hasattr(Mi, "__len__"):
-            Mi = np.array(Mi)
 
-    # Complex test for size / type of incoming array
+    # Very simple test for size / type of incoming array
     # just in case numpy / list given
-    try:
-        z.size
-    except Exception:
-        if not z:
-            # Didn't pass anything, set zi = z
-            lenzout = 1
-        else:
-            # Passed something, not a numpy array, probably list
-            if hasattr(z, "__len__"):
-                lenzout = 0
-                for test in z:
-                    lenzout += 1
-                z = np.array(z)
-            else:
-                lenzout = 1
-                z = np.array([z])
+    if z is False:
+        # Didn't pass anything, set zi = z
+        lenzout = 1
     else:
-        # Passed an array, what size is it?
-        if hasattr(z, "__len__"):
-            lenzout = 0
-            for test in z:
-                lenzout += 1
-            z = np.array(z)
-        else:
-            # Just one entry, force as array
-            lenzout = 1
-            z = np.array([z])
+        # If something was passed, convert to 1D NumPy array
+        z = np.array(z, ndmin=1, dtype=float)
+        lenzout = z.size
 
-    return zi, Mi, z, lenz, lenm, lenzout
+    return(zi, Mi, z, zi.size, Mi.size, lenzout)
 
 
 def getcosmo(cosmology):
@@ -142,7 +92,7 @@ def getcosmo(cosmology):
         # note that they aren't used (set to zero)
         for paramnames in cg.WMAP5_mean().keys():
             if paramnames not in cosmology.keys():
-                cosmo.update({paramnames: 0.})
+                cosmo.update({paramnames: 0})
     elif cosmology.lower() in defaultcosmologies.keys():
         # Load by name of cosmology instead
         cosmo = defaultcosmologies[cosmology.lower()]
@@ -155,7 +105,7 @@ def getcosmo(cosmology):
     cosmo = cp.distance.set_omega_k_0(cosmo)
 
     # Use the cosmology as **cosmo passed to cosmolopy routines
-    return cosmo
+    return(cosmo)
 
 
 def _getcosmoheader(cosmo):
@@ -166,23 +116,23 @@ def _getcosmoheader(cosmo):
                        cosmo['omega_M_0'], cosmo['omega_lambda_0'], cosmo['h'],
                        cosmo['sigma_8'], cosmo['n']))
 
-    return cosmoheader
+    return(cosmoheader)
 
 
 def cduffy(z, M, vir='200crit', relaxed=True):
     """ NFW conc from Duffy 08 Table 1 for halo mass and redshift"""
 
-    if vir == '200crit':
+    if(vir == '200crit'):
         if relaxed:
             params = [6.71, -0.091, -0.44]
         else:
             params = [5.71, -0.084, -0.47]
-    elif vir == 'tophat':
+    elif(vir == 'tophat'):
         if relaxed:
             params = [9.23, -0.090, -0.69]
         else:
             params = [7.85, -0.081, -0.71]
-    elif vir == '200mean':
+    elif(vir == '200mean'):
         if relaxed:
             params = [11.93, -0.090, -0.99]
         else:
@@ -191,7 +141,7 @@ def cduffy(z, M, vir='200crit', relaxed=True):
         print("Didn't recognise the halo boundary definition provided %s"
               % (vir))
 
-    return params[0] * ((M/(2e12/0.72))**params[1]) * ((1.+z)**params[2])
+    return(params[0] * ((M/(2e12/0.72))**params[1]) * ((1+z)**params[2]))
 
 
 def _delta_sigma(**cosmo):
@@ -216,10 +166,10 @@ def _delta_sigma(**cosmo):
 
     """
 
-    M8_cosmo = cp.perturbation.radius_to_mass(8., **cosmo)
+    M8_cosmo = cp.perturbation.radius_to_mass(8, **cosmo)
     perturbed_A = (0.796/cosmo['sigma_8']) * \
-                  (M8_cosmo/2.5e14)**((cosmo['n']-0.963)/6.)
-    return perturbed_A
+                  (M8_cosmo/2.5e14)**((cosmo['n']-0.963)/6)
+    return(perturbed_A)
 
 
 def getAscaling(cosmology, newcosmo=None):
@@ -246,12 +196,12 @@ def getAscaling(cosmology, newcosmo=None):
 
     """
     # Values from Correa 15c
-    defaultcosmologies = {'dragons': 887., 'wmap1': 853., 'wmap3': 850.,
-                          'wmap5': 887., 'wmap7': 887., 'wmap9': 950.,
-                          'wmap1_lss': 853., 'wmap3_mean': 850.,
-                          'wmap5_ml': 887., 'wmap5_lss': 887.,
-                          'wmap7_lss': 887.,
-                          'planck13': 880., 'planck15': 880.}
+    defaultcosmologies = {'dragons': 887, 'wmap1': 853, 'wmap3': 850,
+                          'wmap5': 887, 'wmap7': 887, 'wmap9': 950,
+                          'wmap1_lss': 853, 'wmap3_mean': 850,
+                          'wmap5_ml': 887, 'wmap5_lss': 887,
+                          'wmap7_lss': 887,
+                          'planck13': 880, 'planck15': 880}
 
     if newcosmo:
         # Scale from default WMAP5 cosmology using Correa et al 14b eqn C1
@@ -263,13 +213,13 @@ def getAscaling(cosmology, newcosmo=None):
             print("Error, don't recognise your cosmology for A_scaling ")
             print("You provided %s" % (cosmology))
 
-    return A_scaling
+    return(A_scaling)
 
 
 def _int_growth(z, **cosmo):
     """ Returns integral of the linear growth factor from z=200 to z=z """
 
-    zmax = 200.
+    zmax = 200
 
     if hasattr(z, "__len__"):
         for zval in z:
@@ -277,25 +227,26 @@ def _int_growth(z, **cosmo):
     else:
         assert(z < zmax)
 
-    inv_h3 = lambda z: (1. + z)/(cosmo['omega_M_0']*(1. + z)**3. +
-                                 cosmo['omega_lambda_0'])**(1.5)
-    y, yerr = scipy.integrate.quad(inv_h3, z, zmax)
+    y, yerr = scipy.integrate.quad(
+        lambda z: (1 + z)/(cosmo['omega_M_0']*(1 + z)**3 +
+                           cosmo['omega_lambda_0'])**(1.5),
+        z, zmax)
 
-    return y
+    return(y)
 
 
 def _deriv_growth(z, **cosmo):
     """ Returns derivative of the linear growth factor at z
         for a given cosmology **cosmo """
 
-    inv_h = (cosmo['omega_M_0']*(1. + z)**3. + cosmo['omega_lambda_0'])**(-0.5)
-    fz = (1. + z) * inv_h**3.
+    inv_h = (cosmo['omega_M_0']*(1 + z)**3 + cosmo['omega_lambda_0'])**(-0.5)
+    fz = (1 + z) * inv_h**3
 
-    deriv_g = growthfactor(z, norm=True, **cosmo)*(inv_h**2.) *\
-        1.5 * cosmo['omega_M_0'] * (1. + z)**2. -\
+    deriv_g = growthfactor(z, norm=True, **cosmo)*(inv_h**2) *\
+        1.5 * cosmo['omega_M_0'] * (1 + z)**2 -\
         fz * growthfactor(z, norm=True, **cosmo)/_int_growth(z, **cosmo)
 
-    return deriv_g
+    return(deriv_g)
 
 
 def growthfactor(z, norm=True, **cosmo):
@@ -324,44 +275,44 @@ def growthfactor(z, norm=True, **cosmo):
     ------
 
     """
-    H = np.sqrt(cosmo['omega_M_0'] * (1. + z)**3. +
+    H = np.sqrt(cosmo['omega_M_0'] * (1 + z)**3 +
                 cosmo['omega_lambda_0'])
     growthval = H * _int_growth(z, **cosmo)
     if norm:
-        growthval /= _int_growth(0., **cosmo)
+        growthval /= _int_growth(0, **cosmo)
 
-    return growthval
+    return(growthval)
 
 
-def _minimize_c(c, z=0., a_tilde=1., b_tilde=-1.,
-                Ascaling=900., omega_M_0=0.25, omega_lambda_0=0.75):
+def _minimize_c(c, z=0, a_tilde=1, b_tilde=-1,
+                Ascaling=900, omega_M_0=0.25, omega_lambda_0=0.75):
     """ Trial function to solve 2 eqns (17 and 18) from Correa et al. (2015c)
         for 1 unknown, i.e. concentration, returned by a minimisation call """
 
     # Fn 1 (LHS of Eqn 18)
 
-    Y1 = np.log(2.) - 0.5
-    Yc = np.log(1.+c) - c/(1.+c)
+    Y1 = np.log(2) - 0.5
+    Yc = np.log(1+c) - c/(1+c)
     f1 = Y1/Yc
 
     # Fn 2 (RHS of Eqn 18)
 
     # Eqn 14 - Define the mean inner density
-    rho_2 = 200. * c**3. * Y1 / Yc
+    rho_2 = 200 * c**3 * Y1 / Yc
 
     # Eqn 17 rearranged to solve for Formation Redshift
     # essentially when universe had rho_2 density
-    zf = (((1. + z)**3. + omega_lambda_0/omega_M_0) *
-          (rho_2/Ascaling) - omega_lambda_0/omega_M_0)**(1./3.) - 1.
+    zf = (((1 + z)**3 + omega_lambda_0/omega_M_0) *
+          (rho_2/Ascaling) - omega_lambda_0/omega_M_0)**(1/3) - 1
 
     # RHS of Eqn 19
-    f2 = ((1. + zf - z)**a_tilde) * np.exp((zf - z) * b_tilde)
+    f2 = ((1 + zf - z)**a_tilde) * np.exp((zf - z) * b_tilde)
 
     # LHS - RHS should be zero for the correct concentration
-    return f1-f2
+    return(f1-f2)
 
 
-def formationz(c, z, Ascaling=900., omega_M_0=0.25, omega_lambda_0=0.75):
+def formationz(c, z, Ascaling=900, omega_M_0=0.25, omega_lambda_0=0.75):
     """ Rearrange eqn 18 from Correa et al (2015c) to return
         formation redshift for a concentration at a given redshift
 
@@ -385,14 +336,14 @@ def formationz(c, z, Ascaling=900., omega_M_0=0.25, omega_lambda_0=0.75):
         Formation redshift for halo of concentration 'c' at redshift 'z'
 
     """
-    Y1 = np.log(2.) - 0.5
-    Yc = np.log(1.+c) - c/(1.+c)
-    rho_2 = 200.*(c**3.)*Y1/Yc
+    Y1 = np.log(2) - 0.5
+    Yc = np.log(1+c) - c/(1+c)
+    rho_2 = 200*(c**3)*Y1/Yc
 
-    zf = (((1.+z)**3. + omega_lambda_0/omega_M_0) *
-          (rho_2/Ascaling) - omega_lambda_0/omega_M_0)**(1./3.) - 1.
+    zf = (((1+z)**3 + omega_lambda_0/omega_M_0) *
+          (rho_2/Ascaling) - omega_lambda_0/omega_M_0)**(1/3) - 1
 
-    return zf
+    return(zf)
 
 
 def calc_ab(zi, Mi, **cosmo):
@@ -419,7 +370,7 @@ def calc_ab(zi, Mi, **cosmo):
 
     # Eqn 23 of Correa et al 2015a (analytically solve from Eqn 16 and 17)
     # Arbitray formation redshift, z_-2 in COM is more physically motivated
-    zf = -0.0064 * (np.log10(Mi))**2. + 0.0237 * (np.log10(Mi)) + 1.8837
+    zf = -0.0064 * (np.log10(Mi))**2 + 0.0237 * (np.log10(Mi)) + 1.8837
 
     # Eqn 22 of Correa et al 2015a
     q = 4.137 * zf**(-0.9476)
@@ -430,20 +381,20 @@ def calc_ab(zi, Mi, **cosmo):
     Rq_Mass = cp.perturbation.mass_to_radius(Mi/q, **cosmo)  # [Mpc]
 
     # Mass variance 'sigma' evaluate at z=0 to a good approximation
-    sig, err_sig = cp.perturbation.sigma_r(R_Mass, 0., **cosmo)  # [Mpc]
-    sigq, err_sigq = cp.perturbation.sigma_r(Rq_Mass, 0., **cosmo)  # [Mpc]
+    sig, err_sig = cp.perturbation.sigma_r(R_Mass, 0, **cosmo)  # [Mpc]
+    sigq, err_sigq = cp.perturbation.sigma_r(Rq_Mass, 0, **cosmo)  # [Mpc]
 
-    f = (sigq**2. - sig**2.)**(-0.5)
+    f = (sigq**2 - sig**2)**(-0.5)
 
     # Eqn 9 and 10 from Correa et al 2015c
     # (generalised to zi from Correa et al 2015a's z=0 special case)
     # a_tilde is power law growth rate
-    a_tilde = (np.sqrt(2./np.pi) * 1.686 * _deriv_growth(zi, **cosmo) /
-               growthfactor(zi, norm=True, **cosmo)**2. + 1.)*f
+    a_tilde = (np.sqrt(2/np.pi) * 1.686 * _deriv_growth(zi, **cosmo) /
+               growthfactor(zi, norm=True, **cosmo)**2 + 1)*f
     # b_tilde is exponential growth rate
     b_tilde = -f
 
-    return a_tilde, b_tilde
+    return(a_tilde, b_tilde)
 
 
 def acc_rate(z, zi, Mi, **cosmo):
@@ -476,15 +427,15 @@ def acc_rate(z, zi, Mi, **cosmo):
 
     # Halo mass at z, in Msol
     # use Eqn 8 in Correa et al. (2015c)
-    Mz = Mi * ((1. + z - zi)**a_tilde) * (np.exp(b_tilde * (z - zi)))
+    Mz = Mi * ((1 + z - zi)**a_tilde) * (np.exp(b_tilde * (z - zi)))
 
     # Accretion rate at z, Msol yr^-1
     # use Eqn 11 from Correa et al. (2015c)
     dMdt = 71.6 * (Mz/1e12) * (cosmo['h']/0.7) *\
-        (-a_tilde / (1. + z - zi) - b_tilde) * (1. + z) *\
-        np.sqrt(cosmo['omega_M_0']*(1. + z)**3.+cosmo['omega_lambda_0'])
+        (-a_tilde / (1 + z - zi) - b_tilde) * (1 + z) *\
+        np.sqrt(cosmo['omega_M_0']*(1 + z)**3+cosmo['omega_lambda_0'])
 
-    return dMdt, Mz
+    return(dMdt, Mz)
 
 
 def MAH(z, zi, Mi, **cosmo):
@@ -511,9 +462,13 @@ def MAH(z, zi, Mi, **cosmo):
         Accretion rate [Msol/yr], halo mass [Msol] at redshift 'z'
 
     """
+
+    # Ensure that z is a 1D NumPy array
+    z = np.array(z, ndmin=1, dtype=float)
+
     # Create a full array
-    dMdt_array = np.empty(np.size(z))
-    Mz_array = np.empty(np.size(z))
+    dMdt_array = np.empty_like(z)
+    Mz_array = np.empty_like(z)
 
     for i_ind, zval in enumerate(z):
         # Solve the accretion rate and halo mass at each redshift step
@@ -522,7 +477,7 @@ def MAH(z, zi, Mi, **cosmo):
         dMdt_array[i_ind] = dMdt
         Mz_array[i_ind] = Mz
 
-    return dMdt_array, Mz_array
+    return(dMdt_array, Mz_array)
 
 
 def COM(z, M, **cosmo):
@@ -549,37 +504,34 @@ def COM(z, M, **cosmo):
 
     """
     # Check that z and M are arrays
-    if not hasattr(z, "__len__"):
-        z = np.array([z])
-    if not hasattr(M, "__len__"):
-        M = np.array([M])
+    z = np.array(z, ndmin=1, dtype=float)
+    M = np.array(M, ndmin=1, dtype=float)
 
     # Create array
-    c_array = np.empty(np.size(z))
-    sig_array = np.empty(np.size(z))
-    nu_array = np.empty(np.size(z))
-    zf_array = np.empty(np.size(z))
+    c_array = np.empty_like(z)
+    sig_array = np.empty_like(z)
+    nu_array = np.empty_like(z)
+    zf_array = np.empty_like(z)
 
-    i_ind = 0
-    for zval, Mval in _izip(z, M):
+    for i_ind, (zval, Mval) in enumerate(_izip(z, M)):
         # Evaluate the indices at each redshift and mass combination
         # that you want a concentration for, different to MAH which
         # uses one a_tilde and b_tilde at the starting redshift only
         a_tilde, b_tilde = calc_ab(zval, Mval, **cosmo)
 
         # Minimize equation to solve for 1 unknown, 'c'
-        c = scipy.optimize.brentq(_minimize_c, 2., 1000.,
+        c = scipy.optimize.brentq(_minimize_c, 2, 1000,
                                   args=(zval, a_tilde, b_tilde,
                                         cosmo['A_scaling'], cosmo['omega_M_0'],
                                         cosmo['omega_lambda_0']))
 
-        if np.isclose(c, 0.):
+        if np.isclose(c, 0):
             print("Error solving for concentration with given redshift and "
                   "(probably) too small a mass")
-            c = -1.
-            sig = -1.
-            nu = -1.
-            zf = -1.
+            c = -1
+            sig = -1
+            nu = -1
+            zf = -1
         else:
             # Calculate formation redshift for this concentration,
             # redshift at which the scale radius = virial radius: z_-2
@@ -589,20 +541,18 @@ def COM(z, M, **cosmo):
 
             R_Mass = cp.perturbation.mass_to_radius(Mval, **cosmo)
 
-            sig, err_sig = cp.perturbation.sigma_r(R_Mass, 0., **cosmo)
-            nu = 1.686 / (sig*growthfactor(zval, norm=True, **cosmo))
+            sig, err_sig = cp.perturbation.sigma_r(R_Mass, 0, **cosmo)
+            nu = 1.686/(sig*growthfactor(zval, norm=True, **cosmo))
 
         c_array[i_ind] = c
         sig_array[i_ind] = sig
         nu_array[i_ind] = nu
         zf_array[i_ind] = zf
 
-        i_ind += 1
-
-    return c_array, sig_array, nu_array, zf_array
+    return(c_array, sig_array, nu_array, zf_array)
 
 
-def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
+def run(cosmology, zi=0, Mi=1e12, z=False, com=True, mah=True,
         filename=None, verbose=None, retcosmo=None):
     """ Run commah code on halo of mass 'Mi' at redshift 'zi' with
         accretion and profile history at higher redshifts 'z'
@@ -699,12 +649,19 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
     # Check user choices...
     if not com and not mah:
         print("User has to choose com=True and / or mah=True ")
-        return -1
+        return(-1)
 
     # Convert arrays / lists to np.array
     # and inflate redshift / mass axis
     # to match each other for later loop
-    zi, Mi, z, lenz, lenm, lenzout = _checkinput(zi, Mi, z=z, verbose=verbose)
+    results = _checkinput(zi, Mi, z=z, verbose=verbose)
+
+    # Return if results is -1
+    if(results == -1):
+        return(-1)
+    # If not, unpack the returned iterable
+    else:
+        zi, Mi, z, lenz, lenm, lenzout = results
     # At this point we will have lenm objects to iterate over
 
     # Get the cosmological parameters for the given cosmology
@@ -713,13 +670,15 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
     # Create  output file if desired
     if filename:
         print("Output to file %r" % (filename))
+        fout = open(filename, 'wb')
 
-    # Create the structured datset
-    if mah and com:
-        if verbose:
-            print("Output requested is zi, Mi, z, dMdt, Mz, c, sig, nu, zf")
-        if filename:
-            with open(filename, 'wb') as fout:
+    # Create the structured dataset
+    try:
+        if mah and com:
+            if verbose:
+                print("Output requested is zi, Mi, z, dMdt, Mz, c, sig, nu, "
+                      "zf")
+            if filename:
                 fout.write(_getcosmoheader(cosmo)+'\n')
                 fout.write("# Initial z - Initial Halo  - Output z - "
                            " Accretion -  Final Halo  - concentration - "
@@ -733,15 +692,14 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
                 fout.write("#           -    [Msol]     -          - "
                            " [Msol/yr] -    [Msol]    -               - "
                            "           -            -              "+'\n')
-        dataset = np.zeros((lenm, lenzout), dtype=[('zi', float),
-                           ('Mi', float), ('z', float), ('dMdt', float),
-                           ('Mz', float), ('c', float), ('sig', float),
-                           ('nu', float), ('zf', float)])
-    elif mah:
-        if verbose:
-            print("Output requested is zi, Mi, z, dMdt, Mz")
-        if filename:
-            with open(filename, 'wb') as fout:
+            dataset = np.zeros((lenm, lenzout), dtype=[('zi', float),
+                               ('Mi', float), ('z', float), ('dMdt', float),
+                               ('Mz', float), ('c', float), ('sig', float),
+                               ('nu', float), ('zf', float)])
+        elif mah:
+            if verbose:
+                print("Output requested is zi, Mi, z, dMdt, Mz")
+            if filename:
                 fout.write(_getcosmoheader(cosmo)+'\n')
                 fout.write("# Initial z - Initial Halo  - Output z -"
                            "   Accretion - Final Halo "+'\n')
@@ -751,14 +709,13 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
                            "    (dm/dt)  -  (M200)    "+'\n')
                 fout.write("#           -    [Msol]     -          -"
                            "   [Msol/yr] -  [Msol]    "+'\n')
-        dataset = np.zeros((lenm, lenzout), dtype=[('zi', float),
-                           ('Mi', float), ('z', float),
-                           ('dMdt', float), ('Mz', float)])
-    else:
-        if verbose:
-            print("Output requested is zi, Mi, z, c, sig, nu, zf")
-        if filename:
-            with open(filename, 'wb') as fout:
+            dataset = np.zeros((lenm, lenzout), dtype=[('zi', float),
+                               ('Mi', float), ('z', float),
+                               ('dMdt', float), ('Mz', float)])
+        else:
+            if verbose:
+                print("Output requested is zi, Mi, z, c, sig, nu, zf")
+            if filename:
                 fout.write(_getcosmoheader(cosmo)+'\n')
                 fout.write("# Initial z - Initial Halo  - Output z - "
                            " concentration - "
@@ -772,79 +729,71 @@ def run(cosmology, zi=0., Mi=1e12, z=False, com=True, mah=True,
                 fout.write("#           -   [Msol]      -          - "
                            "               - "
                            "          -            -            "+'\n')
-        dataset = np.zeros((lenm, lenzout), dtype=[('zi', float),
-                           ('Mi', float), ('z', float), ('c', float),
-                           ('sig', float), ('nu', float), ('zf', float)])
+            dataset = np.zeros((lenm, lenzout), dtype=[('zi', float),
+                               ('Mi', float), ('z', float), ('c', float),
+                               ('sig', float), ('nu', float), ('zf', float)])
 
-    # Now loop over the combination of initial redshift and halo mamss
-    i_ind = 0
-    for zval, Mval in _izip(zi, Mi):
-        if verbose:
-            print("Output Halo of Mass Mi=%s at zi=%s" % (Mval, zval))
-        # For a given halo mass Mi at redshift zi need to know
-        # output redshifts 'z'
-        # Check that all requested redshifts are greater than
-        # input redshift, except if z is None, in which case
-        # only solve z at zi, i.e. remove a loop
-        try:
-            z.size
-        except Exception:
-            if not z:
-                # Didn't pass anything, set as redshift
-                ztemp = np.array([zval])
+        # Now loop over the combination of initial redshift and halo mamss
+        for i_ind, (zval, Mval) in enumerate(_izip(zi, Mi)):
+            if verbose:
+                print("Output Halo of Mass Mi=%s at zi=%s" % (Mval, zval))
+            # For a given halo mass Mi at redshift zi need to know
+            # output redshifts 'z'
+            # Check that all requested redshifts are greater than
+            # input redshift, except if z is False, in which case
+            # only solve z at zi, i.e. remove a loop
+            if z is False:
+                ztemp = np.array(zval, ndmin=1, dtype=float)
             else:
-                # Passed list perhaps, ensure z > zi
-                ztemp = np.array(z[z >= zval])
-        else:
-            ztemp = z
+                ztemp = np.array(z[z >= zval], dtype=float)
 
-        # Loop over the output redshifts
-        if ztemp.size > 0:
-            # Return accretion rates and halo mass progenitors at
-            # redshifts 'z' for object of mass Mi at zi
-            dMdt, Mz = MAH(ztemp, zval, Mval, **cosmo)
-            if mah and com:
-                # More expensive to return concentrations
-                c, sig, nu, zf = COM(ztemp, Mz, **cosmo)
-                # Save all arrays
-                for j_ind, j_val in enumerate(ztemp):
-                    dataset[i_ind, j_ind] = zval, Mval, ztemp[j_ind],\
-                        dMdt[j_ind], Mz[j_ind], c[j_ind],\
-                        sig[j_ind], nu[j_ind], zf[j_ind]
-                    if filename:
-                        fout.write("{}, {}, {}, {}, {}, {}, {}, {}, {} \n".
-                                   format(zval, Mval, ztemp[j_ind],
-                                          dMdt[j_ind], Mz[j_ind], c[j_ind],
-                                          sig[j_ind], nu[j_ind], zf[j_ind]))
-            elif mah:
-                # Save only MAH arrays
-                for j_ind, j_val in enumerate(ztemp):
-                    dataset[i_ind, j_ind] = zval, Mval, ztemp[j_ind],\
-                        dMdt[j_ind], Mz[j_ind]
-                    if filename:
-                        fout.write("{}, {}, {}, {}, {} \n".
-                                   format(zval, Mval, ztemp[j_ind],
-                                          dMdt[j_ind], Mz[j_ind]))
-            else:
-                # Output only COM arrays
-                c, sig, nu, zf = COM(ztemp, Mz, **cosmo)
-                # For any halo mass Mi at redshift zi
-                # solve for c, sig, nu and zf
-                for j_ind, j_val in enumerate(ztemp):
-                    dataset[i_ind, j_ind] = zval, Mval, ztemp[j_ind],\
-                        c[j_ind], sig[j_ind], nu[j_ind], zf[j_ind]
-                    if filename:
-                        fout.write("{}, {}, {}, {}, {}, {}, {} \n".
-                                   format(zval, Mval, ztemp[j_ind],
-                                          c[j_ind], sig[j_ind],
-                                          nu[j_ind], zf[j_ind]))
+            # Loop over the output redshifts
+            if ztemp.size:
+                # Return accretion rates and halo mass progenitors at
+                # redshifts 'z' for object of mass Mi at zi
+                dMdt, Mz = MAH(ztemp, zval, Mval, **cosmo)
+                if mah and com:
+                    # More expensive to return concentrations
+                    c, sig, nu, zf = COM(ztemp, Mz, **cosmo)
+                    # Save all arrays
+                    for j_ind, j_val in enumerate(ztemp):
+                        dataset[i_ind, j_ind] =\
+                            (zval, Mval, ztemp[j_ind], dMdt[j_ind], Mz[j_ind],
+                             c[j_ind], sig[j_ind], nu[j_ind], zf[j_ind])
+                        if filename:
+                            fout.write(
+                                "{}, {}, {}, {}, {}, {}, {}, {}, {} \n".format(
+                                    zval, Mval, ztemp[j_ind], dMdt[j_ind],
+                                    Mz[j_ind], c[j_ind], sig[j_ind], nu[j_ind],
+                                    zf[j_ind]))
+                elif mah:
+                    # Save only MAH arrays
+                    for j_ind, j_val in enumerate(ztemp):
+                        dataset[i_ind, j_ind] =\
+                            (zval, Mval, ztemp[j_ind], dMdt[j_ind], Mz[j_ind])
+                        if filename:
+                            fout.write("{}, {}, {}, {}, {} \n".format(
+                                zval, Mval, ztemp[j_ind], dMdt[j_ind],
+                                Mz[j_ind]))
+                else:
+                    # Output only COM arrays
+                    c, sig, nu, zf = COM(ztemp, Mz, **cosmo)
+                    # For any halo mass Mi at redshift zi
+                    # solve for c, sig, nu and zf
+                    for j_ind, j_val in enumerate(ztemp):
+                        dataset[i_ind, j_ind] =\
+                            (zval, Mval, ztemp[j_ind], c[j_ind], sig[j_ind],
+                             nu[j_ind], zf[j_ind])
+                        if filename:
+                            fout.write("{}, {}, {}, {}, {}, {}, {} \n".format(
+                                zval, Mval, ztemp[j_ind], c[j_ind], sig[j_ind],
+                                nu[j_ind], zf[j_ind]))
 
-        i_ind += 1
-
-    if filename:
-        fout.close()  # Close file
+    # Make sure to close the file if it was opened
+    finally:
+        fout.close() if filename else None
 
     if retcosmo:
-        return dataset, cosmo
+        return(dataset, cosmo)
     else:
-        return dataset
+        return(dataset)

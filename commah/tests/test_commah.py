@@ -27,18 +27,18 @@ class TestCommah(object):
                     9.250262507139139,
                     9.044999285760362]
         for ival, cosmo in enumerate(cosmolist):
-            output = commah.run(cosmo, Mi=[1e12])
+            output = commah.run(cosmo, Mi=[1e12], verbose=True)
             assert(np.allclose(output['c'].flatten()[0],
                    conclist[ival], rtol=1e-3))
 
     def test_evolution(self):
-        zlist = np.array([0., 1., 2.])
+        zlist = np.array([0, 1, 2])
         conclist = np.array([7.66308, 5.70009, 4.55295])
-        output = commah.run('WMAP5', zi=[0.], Mi=[1e12], z=zlist)
+        output = commah.run('WMAP5', zi=[0], Mi=[1e12], z=zlist)
         assert(np.allclose(output['c'].flatten(), conclist, rtol=1e-3))
 
     def test_startingz(self):
-        zlist = np.array([0., 1., 2.])
+        zlist = np.array([0, 1, 2])
         conclist = np.array([4.55295, 4.43175, 4.26342])
-        output = commah.run('WMAP5', zi=zlist, Mi=[1e12], z=2.)
+        output = commah.run('WMAP5', zi=zlist, Mi=[1e12], z=2)
         assert(np.allclose(output['c'].flatten(), conclist, rtol=1e-3))

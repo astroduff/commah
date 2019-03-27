@@ -12,7 +12,7 @@ def runcommand(cosmology='WMAP5'):
     # Return the WMAP5 cosmology concentration predicted for
     # z=0 range of masses
     Mi = [1e8, 1e9, 1e10]
-    zi = 0.
+    zi = 0
     print("Concentrations for haloes of mass %s at z=%s" % (Mi, zi))
     output = commah.run(cosmology=cosmology, zi=zi, Mi=Mi)
 
@@ -21,7 +21,7 @@ def runcommand(cosmology='WMAP5'):
     # Return the WMAP5 cosmology concentration predicted for
     # z=0 range of masses AND cosmological parameters
     Mi = [1e8, 1e9, 1e10]
-    zi = 0.
+    zi = 0
     print("Concentrations for haloes of mass %s at z=%s" % (Mi, zi))
     output, cosmo = commah.run(cosmology=cosmology, zi=zi, Mi=Mi,
                                retcosmo=True)
@@ -32,8 +32,8 @@ def runcommand(cosmology='WMAP5'):
     # Return the WMAP5 cosmology concentration predicted for MW
     # mass (2e12 Msol) across redshift
     Mi = 2e12
-    z = [0., 0.5, 1., 1.5, 2., 2.5]
-    output = commah.run(cosmology=cosmology, zi=0., Mi=Mi, z=z)
+    z = [0, 0.5, 1, 1.5, 2, 2.5]
+    output = commah.run(cosmology=cosmology, zi=0, Mi=Mi, z=z)
     for zval in z:
         print("M(z=0)=%s has c(z=%s)=%s"
               % (Mi, zval, output[output['z'] == zval]['c'].flatten()))
@@ -41,7 +41,7 @@ def runcommand(cosmology='WMAP5'):
     # Return the WMAP5 cosmology concentration predicted for MW
     # mass (2e12 Msol) across redshift
     Mi = 2e12
-    zi = [0., 0.5, 1., 1.5, 2., 2.5]
+    zi = [0, 0.5, 1, 1.5, 2, 2.5]
     output = commah.run(cosmology=cosmology, zi=zi, Mi=Mi)
     for zval in zi:
         print("M(z=%s)=%s has concentration %s"
@@ -51,7 +51,7 @@ def runcommand(cosmology='WMAP5'):
     # Return the WMAP5 cosmology concentration and
     # rarity of high-z cluster
     Mi = 2e14
-    zi = 6.
+    zi = 6
     output = commah.run(cosmology=cosmology, zi=zi, Mi=Mi)
     print("Concentrations for haloes of mass %s at z=%s" % (Mi, zi))
     print(output['c'].flatten())
@@ -63,8 +63,8 @@ def runcommand(cosmology='WMAP5'):
     # Return the WMAP5 cosmology accretion rate prediction
     # for haloes at range of redshift and mass
     Mi = [1e8, 1e9, 1e10]
-    zi = [0.]
-    z = [0., 0.5, 1., 1.5, 2., 2.5]
+    zi = [0]
+    z = [0, 0.5, 1, 1.5, 2, 2.5]
     output = commah.run(cosmology=cosmology, zi=zi, Mi=Mi, z=z)
     for Mval in Mi:
         print("dM/dt for halo of mass %s at z=%s across redshift %s is: "
@@ -73,32 +73,32 @@ def runcommand(cosmology='WMAP5'):
 
     # Return the WMAP5 cosmology Halo Mass History for haloes with M(z=0) = 1e8
     M = [1e8]
-    z = [0., 0.5, 1., 1.5, 2., 2.5]
+    z = [0, 0.5, 1, 1.5, 2, 2.5]
     print("Halo Mass History for z=0 mass of %s across z=%s" % (M, z))
-    output = commah.run(cosmology=cosmology, zi=0., Mi=M, z=z)
+    output = commah.run(cosmology=cosmology, zi=0, Mi=M, z=z)
     print(output['Mz'].flatten())
 
     # Return the WMAP5 cosmology formation redshifts for haloes at
     # range of redshift and mass
     M = [1e8, 1e9, 1e10]
-    z = [0.]
+    z = [0]
     print("Formation Redshifts for haloes of mass %s at z=%s" % (M, z))
-    output = commah.run(cosmology=cosmology, zi=0., Mi=M, z=z)
+    output = commah.run(cosmology=cosmology, zi=0, Mi=M, z=z)
     for Mval in M:
         print(output[output['Mi'] == Mval]['zf'].flatten())
 
-    return "Done"
+    return("Done")
 
 
 def plotcommand(cosmology='WMAP5', plotname=None):
     """ Example ways to interrogate the dataset and plot the commah output """
 
     # Plot the c-M relation as a functon of redshift
-    xarray = 10.**(np.arange(1., 15., 0.2))
+    xarray = 10**(np.arange(1, 15, 0.2))
     yval = 'c'
 
     # Specify the redshift range
-    zarray = np.arange(0., 5., 0.5)
+    zarray = np.arange(0, 5, 0.5)
 
     xtitle = r"Halo Mass (M$_{sol}$)"
     ytitle = r"Concentration"
@@ -108,7 +108,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
     ax = fig.add_subplot(111)
     ax.set_xlabel(xtitle)
     ax.set_ylabel(ytitle)
-    plt.ylim([2., 30.])
+    plt.ylim([2, 30])
 
     colors = cm.rainbow(np.linspace(0, 1, len(zarray)))
 
@@ -121,7 +121,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
         # Plot each line in turn with different colour
         ax.plot(xarray, yarray, label=linelabel+str(zval), color=colors[zind])
         # Overplot the D08 predictions in black
-        ax.plot(xarray, commah.cduffy(zval, xarray), color="black")
+        ax.plot(xarray, commah.commah.cduffy(zval, xarray), color="black")
 
     ax.set_xscale('log')
     ax.set_yscale('log')
@@ -143,11 +143,11 @@ def plotcommand(cosmology='WMAP5', plotname=None):
         plt.show()
 
     # Plot the c-z relation as a function of mass (so always Mz=M0)
-    xarray = 10.**(np.arange(0., 1., 0.05)) - 1.
+    xarray = 10**(np.arange(0, 1, 0.05)) - 1
     yval = 'c'
 
     # Specify the mass range
-    zarray = 10.**np.arange(6., 14., 2.)
+    zarray = 10**np.arange(6, 14, 2)
 
     xtitle = r"Redshift"
     ytitle = r"NFW Concentration"
@@ -187,11 +187,11 @@ def plotcommand(cosmology='WMAP5', plotname=None):
         plt.show()
 
     # Plot the zf-z relation for different masses (so always Mz=M0)
-    xarray = 10.**(np.arange(0., 1., 0.05)) - 1.
+    xarray = 10**(np.arange(0, 1, 0.05)) - 1
     yval = 'zf'
 
     # Specify the mass range
-    zarray = 10.**np.arange(6., 14., 2.)
+    zarray = 10**np.arange(6, 14, 2)
 
     xtitle = r"Redshift"
     ytitle = r"Formation Redshift"
@@ -230,11 +230,11 @@ def plotcommand(cosmology='WMAP5', plotname=None):
         plt.show()
 
     # Plot the dM/dt-z relation for different masses (so always Mz=M0)
-    xarray = 10.**(np.arange(0., 1., 0.05)) - 1.
+    xarray = 10**(np.arange(0, 1, 0.05)) - 1
     yval = 'dMdt'
 
     # Specify the mass range
-    zarray = 10.**np.arange(10., 14., 0.5)
+    zarray = 10**np.arange(10, 14, 0.5)
 
     xtitle = r"log$_{10}$ (1+z)"
     ytitle = r"log$_{10}$ Accretion Rate M$_{sol}$ yr$^{-1}$"
@@ -260,10 +260,10 @@ def plotcommand(cosmology='WMAP5', plotname=None):
 
         # Plot the semi-analytic approximate formula from Correa et al 2015b
         semianalytic_approx = 71.6 * (zval / 1e12) * (cosmo['h'] / 0.7) *\
-            (-0.24 + 0.75 * (xarray + 1.)) * np.sqrt(
-            cosmo['omega_M_0'] * (xarray + 1.)**3. + cosmo['omega_lambda_0'])
+            (-0.24 + 0.75 * (xarray + 1)) * np.sqrt(
+            cosmo['omega_M_0'] * (xarray + 1)**3 + cosmo['omega_lambda_0'])
 
-        ax.plot(np.log10(xarray + 1.), np.log10(semianalytic_approx),
+        ax.plot(np.log10(xarray + 1), np.log10(semianalytic_approx),
                 color='black')
 
     leg = ax.legend(loc=2)
@@ -283,11 +283,11 @@ def plotcommand(cosmology='WMAP5', plotname=None):
         plt.show()
 
     # Plot the dMdt-M relation as a function of redshift
-    xarray = 10.**(np.arange(10., 14., 0.5))
+    xarray = 10**(np.arange(10, 14, 0.5))
     yval = 'dMdt'
 
     # Specify the redshift range
-    zarray = np.arange(0., 5., 0.5)
+    zarray = np.arange(0, 5, 0.5)
 
     xtitle = r"Halo Mass M$_{sol}$"
     ytitle = r"Accretion Rate M$_{sol}$ yr$^{-1}$"
@@ -329,11 +329,11 @@ def plotcommand(cosmology='WMAP5', plotname=None):
         plt.show()
 
     # Plot the (dM/M)dt-M relation as a function of redshift
-    xarray = 10.**(np.arange(10., 14., 0.5))
+    xarray = 10**(np.arange(10, 14, 0.5))
     yval = 'dMdt'
 
     # Specify the redshift range
-    zarray = np.arange(0., 5., 0.5)
+    zarray = np.arange(0, 5, 0.5)
 
     xtitle = r"Halo Mass M$_{sol}$"
     ytitle = r"Specific Accretion Rate yr$^{-1}$"
@@ -376,11 +376,11 @@ def plotcommand(cosmology='WMAP5', plotname=None):
 
     # Plot the Mz-z relation as a function of mass
     # (so mass is decreasing to zero as z-> inf)
-    xarray = 10.**(np.arange(0., 1., 0.05)) - 1.
+    xarray = 10**(np.arange(0, 1, 0.05)) - 1
     yval = 'Mz'
 
     # Specify the mass range
-    zarray = 10.**np.arange(10., 14., 0.5)
+    zarray = 10**np.arange(10, 14, 0.5)
 
     xtitle = r"Redshift"
     ytitle = r"M(z) (M$_{sol}$)"
@@ -393,7 +393,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
     colors = cm.rainbow(np.linspace(0, 1, len(zarray)))
 
     for zind, zval in enumerate(zarray):
-        output = commah.run(cosmology=cosmology, zi=0., Mi=zval, z=xarray)
+        output = commah.run(cosmology=cosmology, zi=0, Mi=zval, z=xarray)
 
         yarray = output[yval].flatten()
 
@@ -421,11 +421,11 @@ def plotcommand(cosmology='WMAP5', plotname=None):
         plt.show()
 
     # Plot the Mz/M0-z relation as a function of mass
-    xarray = 10.**(np.arange(0., 1., 0.02)) - 1.
+    xarray = 10**(np.arange(0, 1, 0.02)) - 1
     yval = 'Mz'
 
     # Specify the mass range
-    zarray = 10.**np.arange(10., 14., 0.5)
+    zarray = 10**np.arange(10, 14, 0.5)
 
     xtitle = r"Redshift"
     ytitle = r"log$_{10}$ M(z)/M$_{0}$"
@@ -438,7 +438,7 @@ def plotcommand(cosmology='WMAP5', plotname=None):
     colors = cm.rainbow(np.linspace(0, 1, len(zarray)))
 
     for zind, zval in enumerate(zarray):
-        output = commah.run(cosmology=cosmology, zi=0., Mi=zval, z=xarray)
+        output = commah.run(cosmology=cosmology, zi=0, Mi=zval, z=xarray)
 
         yarray = output[yval].flatten()
 
@@ -463,4 +463,4 @@ def plotcommand(cosmology='WMAP5', plotname=None):
     else:
         plt.show()
 
-    return "Done"
+    return("Done")
