@@ -1,43 +1,63 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Built-in imports
+from codecs import open
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+# Package imports
+from setuptools import find_packages, setup
 
+# %% SETUP DEFINITION
+# Read-in the README.rst file
+with open('README.rst', 'r') as f:
+    readme = f.read()
 
-readme = open('README.rst').read()
-history = open('HISTORY.rst').read().replace('.. :changelog:', '')
+# Read-in the HISTORY.rst file
+with open('HISTORY.rst', 'r') as f:
+    history = f.read().replace(".. :changelog:", "")
 
-requirements = ['numpy>=1.4,<=1.9', 'cosmolopy', 'scipy>=0.13,<=0.15.1']
+# Combine readme and history to the long description
+long_description = "\n\n".join([readme, history])
 
-test_requirements = []
+# Get the requirements list
+with open('requirements.txt', 'r') as f:
+    requirements = f.read().splitlines()
 
+# Get the current package version
+version = None
+with open('commah/__version__.py', 'r') as f:
+    exec(f.read())
+
+# Setup function declaration
 setup(
     name='commah',
-    version='0.2.1',
+    version=version,
     description='Get conc - mass or accretion history for any cosmology',
-    long_description=readme + '\n\n' + history,
+    long_description=long_description,
     author='Alan Duffy',
     author_email='mail@alanrduffy.com',
     url='https://github.com/astroduff/commah',
-    download_url='https://github.com/astroduff/commah/tarball/0.2',
-    packages=['commah'],
-    package_dir={'commah/': ''},
+    download_url='https://github.com/astroduff/commah/tarball/%s' % (version),
+    packages=find_packages(),
+    package_dir={'commah': 'commah'},
     include_package_data=True,
     install_requires=requirements,
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4',
     license="BSD",
     zip_safe=False,
-    keywords=['commah','cosmology','astronomy','NFW','concentration','accretion'],
+    keywords=('commah', 'cosmology', 'astronomy', 'NFW', 'concentration',
+              'accretion'),
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
-    test_suite='tests',
-    tests_require=test_requirements
 )

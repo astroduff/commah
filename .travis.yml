@@ -1,28 +1,16 @@
-# Config file for automatic testing at travis-ci.org
-
-# language: python
-# Use c to install scipy with apt-get rather than pip
-
-language: c
-python:
-  - 2.7
-virtualenv:
-  system_site_packages: true
-before_install:
-  - while true; do echo "Still working..."; sleep 120; done &
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
-  - sudo apt-get install python-numpy 
-  - sudo apt-get install python-scipy
-  - sudo pip install -q numpy==1.9
-  - sudo pip install -q scipy==0.15
-  - sudo pip install cosmolopy
+language: python
+dist: xenial
+sudo: true
+matrix:
+    include:
+        - python: 2.7
+        - python: 3.5
+        - python: 3.6
+        - python: 3.7
+install:
+    - pip install --upgrade pip setuptools wheel
+script:
+    - pip install -r requirements_test.txt
+    - pytest
 notifications: 
-  email: false
-
-# install the python script
-install: 
-  - sudo pip install commah
-
-# command to run tests, e.g. python setup.py test
-script: python setup.py test
+    email: false

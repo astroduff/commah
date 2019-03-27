@@ -2,6 +2,8 @@
     copied and expanded from the cosmolopy list that's no longer updated.
 """
 
+from __future__ import absolute_import, division, print_function
+
 
 def add_extras(cosmo):
     """Sets neutrino number N_nu = 0, neutrino density
@@ -46,7 +48,7 @@ def DRAGONS(flat=False, extras=True):
              't_0': 13.76,
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -84,7 +86,7 @@ def WMAP1_2dF_mean(flat=False, extras=True):
              't_0': 13.7,
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -121,7 +123,7 @@ def WMAP1_Mill(flat=False, extras=True):
              't_0': 13.7,
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -159,7 +161,7 @@ def WMAP3_mean(flat=False, extras=True):
              't_0': 13.73,
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -197,7 +199,7 @@ def WMAP3_ML(flat=False, extras=True):
              't_0': 13.73,
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -262,7 +264,7 @@ def WMAP5_BAO_SN_mean(flat=False, extras=True):
              't_0': 13.72
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -305,7 +307,7 @@ def WMAP5_ML(flat=False, extras=True):
              't_0': 13.69
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -348,7 +350,7 @@ def WMAP5_mean(flat=False, extras=True):
              't_0': 13.69
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -386,7 +388,7 @@ def WMAP7_ML(flat=False, extras=True):
              't_0': 13.71,
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -424,7 +426,7 @@ def WMAP7_BAO_H0_mean(flat=False, extras=True):
              't_0': 13.75,  # 13.72
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -462,7 +464,7 @@ def WMAP9_ML(flat=False, extras=True):
              't_0': 13.76,
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -500,7 +502,7 @@ def Planck_2013(flat=False, extras=True):
              't_0': 13.82,
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
@@ -526,7 +528,7 @@ def Planck_2015(flat=False, extras=True):
       omega_n_0 = 0.0, Helium mass fraction Y_He = 0.24.
 
       """
-    omega_b_0 = 0.02230/(0.6774**2.)
+    omega_b_0 = 0.02230/(0.6774**2)
     cosmo = {'omega_b_0': omega_b_0,
              'omega_M_0': 0.3089,
              'omega_lambda_0': 0.6911,
@@ -538,7 +540,7 @@ def Planck_2015(flat=False, extras=True):
              't_0': 13.799,
              }
     if flat:
-        cosmo['omega_lambda_0'] = 1. - cosmo['omega_M_0']
+        cosmo['omega_lambda_0'] = 1 - cosmo['omega_M_0']
         cosmo['omega_k_0'] = 0.0
     if extras:
         add_extras(cosmo)
