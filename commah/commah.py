@@ -14,16 +14,6 @@ __author__ = 'Camila Correa and Alan Duffy'
 __email__ = 'mail@alanrduffy.com'
 
 
-def _izip(*iterables):
-    """ Iterate through multiple lists or arrays of equal size """
-    # This izip routine is from itertools
-    # izip('ABCD', 'xy') --> Ax By
-
-    iterators = map(iter, iterables)
-    while iterators:
-        yield tuple(map(next, iterators))
-
-
 def _checkinput(zi, Mi, z=False, verbose=None):
     """ Check and convert any input scalar or array to numpy array """
     # How many halo redshifts provided?
@@ -512,8 +502,8 @@ def COM(z, M, **cosmo):
     sig_array = np.empty_like(z)
     nu_array = np.empty_like(z)
     zf_array = np.empty_like(z)
-
-    for i_ind, (zval, Mval) in enumerate(_izip(z, M)):
+    
+    for i_ind, (zval, Mval) in enumerate(zip(z, M)):
         # Evaluate the indices at each redshift and mass combination
         # that you want a concentration for, different to MAH which
         # uses one a_tilde and b_tilde at the starting redshift only
@@ -734,7 +724,7 @@ def run(cosmology, zi=0, Mi=1e12, z=False, com=True, mah=True,
                                ('sig', float), ('nu', float), ('zf', float)])
 
         # Now loop over the combination of initial redshift and halo mamss
-        for i_ind, (zval, Mval) in enumerate(_izip(zi, Mi)):
+        for i_ind, (zval, Mval) in enumerate(zip(zi, Mi)):
             if verbose:
                 print("Output Halo of Mass Mi=%s at zi=%s" % (Mval, zval))
             # For a given halo mass Mi at redshift zi need to know
