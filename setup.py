@@ -3,6 +3,7 @@
 
 # Built-in imports
 from codecs import open
+import re
 
 # Package imports
 from setuptools import find_packages, setup
@@ -23,10 +24,12 @@ long_description = "\n\n".join([readme, history])
 with open('requirements.txt', 'r') as f:
     requirements = f.read().splitlines()
 
-# Get the current package version
-version = None
+# Read the __version__.py file
 with open('commah/__version__.py', 'r') as f:
-    exec(f.read())
+    vf = f.read()
+
+# Obtain version from read-in __version__.py file
+version = re.search(r"^_*version_* = ['\"]([^'\"]*)['\"]", vf, re.M).group(1)
 
 # Setup function declaration
 setup(

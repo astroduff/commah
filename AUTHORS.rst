@@ -11,4 +11,4 @@ Development Lead
 Contributors
 ------------
 
-None yet. Why not be the first?
+* Ellert vd Velden aka @1313e has written the entire package into python 3 (and improved 2.7 functionality)

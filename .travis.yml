@@ -1,16 +1,39 @@
 language: python
 dist: xenial
 sudo: true
+os: linux
+
+env:
+  global:
+    - TWINE_USERNAME=astroduff
+    - secure: "fWAOu79jbrSLPdu2j7xiVbYQcyEXE7HRbNBVmG+RkhP23l1teB8TT9y/jHtpgl6MNew8hT6jGz/YLJeYmCD4sQBQA+Op74T1kw1VTjeTJuaYDP+5qLuhgeJ2BOyDP8QWbziT3xiUi7496/SXJiaDzCSlp+zig4EkAv1FNgCmh9Q="
+
 matrix:
     include:
-        - python: 2.7
-        - python: 3.5
-        - python: 3.6
-        - python: 3.7
+      - os: osx
+        python: 2
+        language: generic
+      - os: osx
+        python: 3
+        language: generic
+        env: PY=3
+      - python: 2.7
+      - python: 3.5
+      - python: 3.6
+      - python: 3.7
+
 install:
-    - pip install --upgrade pip setuptools wheel
+  - python$PY -m pip install --upgrade pip setuptools wheel
+  - pip$PY install -r requirements_test.txt
+
 script:
-    - pip install -r requirements_test.txt
-    - pytest
+  - pytest
+
+after_success:
+  - python$PY setup.py sdist -d wheelhouse
+  - pip$PY wheel . -w wheelhouse
+  - pip$PY install twine
+  - python$PY -m twine upload --skip-existing wheelhouse/commah*
+
 notifications: 
     email: false
