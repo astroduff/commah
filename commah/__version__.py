@@ -10,4 +10,4 @@ Stores the version of the *commah* package.
 
 # %% VERSIONS
 # Default/Latest/Current version
-version = '0.3rc1'
+version = '0.3'
